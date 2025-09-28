@@ -43,18 +43,13 @@ DatafilePluginManager::DatafilePluginManager(const std::string& folder) : _plugi
 	if (!fs::exists(_plugins_folder) || !fs::is_directory(_plugins_folder)) {
 		throw std::runtime_error("Plugins folder does not exist or is not a directory.");
 	}
-	UnloadPlugins();
 	//clear shadow directory if it exists and is not empty
 	if (fs::exists(_shadow_dir_path) && fs::is_directory(_shadow_dir_path)) {
 		for (const auto& entry : fs::directory_iterator(_shadow_dir_path)) {
 			fs::remove(entry.path());
 		}
 	}
-	for (const auto& entry : fs::directory_iterator(_plugins_folder)) {
-		if (entry.path().extension() == ".dll") {
-			ReloadPluginIfChanged(entry.path().string());
-		}
-	}
+	ReloadAll();
 }
 
 DatafilePluginManager::~DatafilePluginManager() {
@@ -66,6 +61,8 @@ void DatafilePluginManager::UnloadPlugins() {
 		if (handle.dll) FreeLibrary(handle.dll);
 		if (!handle.shadow_path.empty()) fs::remove(handle.shadow_path);
 	}
+	_table_compare_cache.clear();
+	_table_plugin_cache.clear();
 	_plugins.clear();
 
 	try {
@@ -76,61 +73,38 @@ void DatafilePluginManager::UnloadPlugins() {
 	catch (...) {}
 }
 
-void DatafilePluginManager::SetReloadCheckEnabled(bool enabled) {
-	_reload_check_enabled = enabled;
-}
-
-bool DatafilePluginManager::IsReloadCheckEnabled() const {
-	return _reload_check_enabled;
-}
-
-void DatafilePluginManager::ForceReload(const std::string& plugin_path) {
-	// Remove any plugin handle so it will be forcibly loaded next time
-	auto it = _plugins.find(plugin_path);
-	if (it != _plugins.end()) {
-		if (it->second.dll) FreeLibrary(it->second.dll);
-		if (!it->second.shadow_path.empty()) fs::remove(it->second.shadow_path);
-		_plugins.erase(it);
-	}
-	bool was_enabled = _reload_check_enabled;
-	SetReloadCheckEnabled(true);
-	ReloadPluginIfChanged(plugin_path);
-	SetReloadCheckEnabled(was_enabled);
-}
-
-void DatafilePluginManager::ForceReloadAll() {
+void DatafilePluginManager::ReloadAll() {
 	// Remove all plugin handles so they will be forcibly loaded next time
-	for (auto& [original, handle] : _plugins) {
-		if (handle.dll) FreeLibrary(handle.dll);
-		if (!handle.shadow_path.empty()) fs::remove(handle.shadow_path);
-	}
-	_plugins.clear();
-	bool was_enabled = _reload_check_enabled;
-	SetReloadCheckEnabled(true);
+	UnloadPlugins();
+
 	for (const auto& entry : fs::directory_iterator(_plugins_folder)) {
 		if (entry.path().extension() == ".dll") {
 			ReloadPluginIfChanged(entry.path().string());
 		}
 	}
-	SetReloadCheckEnabled(was_enabled);
 }
 
 bool DatafilePluginManager::PluginForTableIsRegistered(const wchar_t* table_name) const {
+	// Use std::wstring as the cache key
+	std::wstring key(table_name ? table_name : L"");
+	auto it = _table_compare_cache.find(key);
+	if (it != _table_compare_cache.end()) {
+		return it->second;
+	}
 	for (const auto& [original, handle] : _plugins) {
 		if (handle.dll && handle.tableName) {
-			if (wcscmp(handle.tableName(), table_name) == 0) {
+			const wchar_t* pluginTableName = handle.tableName ? handle.tableName() : nullptr;
+			if (pluginTableName && table_name && wcscmp(pluginTableName, table_name) == 0) {
+				_table_compare_cache[key] = true;
 				return true;
 			}
 		}
 	}
+	_table_compare_cache[key] = false;
 	return false;
 }
 
 void DatafilePluginManager::ReloadPluginIfChanged(const std::string& plugin_path) {
-	// === FEATURE TOGGLE: If reload check is disabled, do NOT re-/load plugins ===
-	if (!_reload_check_enabled) {
-		return;
-	}
 	fs::path orig_path(plugin_path);
 	if (!fs::exists(orig_path)) {
 		std::cerr << "Plugin file does not exist: " << plugin_path << std::endl;
@@ -148,13 +122,23 @@ void DatafilePluginManager::ReloadPluginIfChanged(const std::string& plugin_path
 		return;
 	}
 	// Unload old DLL & cleanup
-	if (handle.dll) FreeLibrary(handle.dll);
+	if (handle.dll) {
+		//remove from table cache
+		for (auto it = _table_plugin_cache.begin(); it != _table_plugin_cache.end(); ) {
+			auto& vec = it->second;
+			vec.erase(std::remove(vec.begin(), vec.end(), &handle), vec.end());
+			if (vec.empty()) {
+				it = _table_plugin_cache.erase(it);
+			}
+			else {
+				++it;
+			}
+		}
+		FreeLibrary(handle.dll);
+	}
 	if (!handle.shadow_path.empty()) fs::remove(handle.shadow_path);
 	handle = PluginHandle{};
 
-
-	// LOAD LOGIC (runs if reload_check_enabled_ is true and reload needed,
-	// or if reload_check_enabled_ is false and plugin not already loaded)
 	std::string shadow_path = CopyToShadow(plugin_path);
 	HMODULE dll = LoadLibraryA(shadow_path.c_str());
 	if (dll) {
@@ -219,48 +203,71 @@ DrEl* DatafilePluginManager::ExecuteAll(PluginParams* params, PluginParamsAutoKe
 	if (paramsAutoKey != nullptr && !PluginForTableIsRegistered(paramsAutoKey->table->_tabledef->name)) {
 		return nullptr;
 	}
-	fs::path plugin_dir(_plugins_folder);
-	/*std::cout << "Plugin directory (absolute): " << fs::absolute(plugin_dir) << "\n";*/
-	if (!fs::exists(plugin_dir) || !fs::is_directory(plugin_dir)) {
-		std::cerr << "Error: Plugin directory does not exist or is not a directory.\n";
-		return nullptr;
-	}
 
-	// Unload plugins whose original DLL is no longer present
-	std::unordered_set<std::string> current_plugins;
-	for (const auto& entry : fs::directory_iterator(plugin_dir)) {
-		if (entry.path().extension() == ".dll") {
-			current_plugins.insert(entry.path().string());
-		}
-	}
-	for (auto it = _plugins.begin(); it != _plugins.end(); ) {
-		if (current_plugins.find(it->first) == current_plugins.end()) {
-			// Plugin file no longer exists, unload it
-			if (it->second.dll) FreeLibrary(it->second.dll);
-			if (!it->second.shadow_path.empty()) fs::remove(it->second.shadow_path);
-			it = _plugins.erase(it);
-		}
-		else {
-			++it;
-		}
-	}
-
-	for (const auto& entry : fs::directory_iterator(plugin_dir)) {
-		if (entry.path().extension() == ".dll") {
-			std::string plugin_path = entry.path().string();
-			ReloadPluginIfChanged(plugin_path);
-			auto& handle = _plugins[plugin_path];
-			if (params != nullptr && handle.execute && wcscmp(handle.tableName(), params->table->_tabledef->name) == 0) {
-				auto pluginReturnValue = handle.execute(params);
-				if (pluginReturnValue.drEl != nullptr)
-					return pluginReturnValue.drEl;
+	if (params != nullptr) {
+		std::wstring key(params->table->_tabledef->name ? params->table->_tabledef->name : L"");
+		auto it = _table_plugin_cache.find(key);
+		if (it == _table_plugin_cache.end()) {
+			std::vector<PluginHandle*> handles;
+			for (auto& kv : _plugins) {
+				if (kv.second.dll && kv.second.tableName && params->table && params->table->_tabledef && params->table->_tabledef->name && wcscmp(kv.second.tableName(), params->table->_tabledef->name) == 0) {
+					handles.push_back(&kv.second);
+				}
 			}
+			_table_plugin_cache[key] = handles;
+			it = _table_plugin_cache.find(key);
+		}
+		for (PluginHandle* handle : it->second) {
+			if (handle->execute) {
+				try {
+					auto pluginReturnValue = handle->execute(params);
+					if (pluginReturnValue.drEl != nullptr)
+						return pluginReturnValue.drEl;
+				}
+				catch (const std::exception& ex) {
+#ifdef _DEBUG
+					std::cerr << "Exception in datafile plugin " << (handle->identifier ? handle->identifier() : "unknown") << ": " << ex.what() << std::endl;
+#endif
+				}
+				catch (...) {
+#ifdef _DEBUG
+					std::cerr << "Unknown exception in datafile plugin " << (handle->identifier ? handle->identifier() : "unknown") << std::endl;
+#endif
+				}
+			}
+		}
+	}
 
-			if (paramsAutoKey != nullptr && handle.executeAutokey && wcscmp(handle.tableName(), paramsAutoKey->table->_tabledef->name) == 0)
-			{
-				auto pluginReturnValue = handle.executeAutokey(paramsAutoKey);
-				if (pluginReturnValue.drEl != nullptr)
-					return pluginReturnValue.drEl;
+	if (paramsAutoKey != nullptr) {
+		std::wstring key(paramsAutoKey->table->_tabledef->name ? paramsAutoKey->table->_tabledef->name : L"");
+		auto it = _table_plugin_cache.find(key);
+		if (it == _table_plugin_cache.end()) {
+			std::vector<PluginHandle*> handles;
+			for (auto& kv : _plugins) {
+				if (kv.second.dll && kv.second.tableName && paramsAutoKey->table && paramsAutoKey->table->_tabledef && paramsAutoKey->table->_tabledef->name && wcscmp(kv.second.tableName(), paramsAutoKey->table->_tabledef->name) == 0) {
+					handles.push_back(&kv.second);
+				}
+			}
+			_table_plugin_cache[key] = handles;
+			it = _table_plugin_cache.find(key);
+		}
+		for (PluginHandle* handle : it->second) {
+			if (handle->executeAutokey) {
+				try {
+					auto pluginReturnValue = handle->executeAutokey(paramsAutoKey);
+					if (pluginReturnValue.drEl != nullptr)
+						return pluginReturnValue.drEl;
+				}
+				catch (const std::exception& ex) {
+#ifdef _DEBUG
+					std::cerr << "Exception in datafile plugin " << (handle->identifier ? handle->identifier() : "unknown") << ": " << ex.what() << std::endl;
+#endif
+				}
+				catch (...) {
+#ifdef _DEBUG
+					std::cerr << "Unknown exception in datafile plugin " << (handle->identifier ? handle->identifier() : "unknown") << std::endl;
+#endif
+				}
 			}
 		}
 	}

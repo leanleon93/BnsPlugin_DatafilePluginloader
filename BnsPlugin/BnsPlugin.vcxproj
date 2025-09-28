@@ -256,7 +256,6 @@
     <ClCompile Include="deps\Detours\src\modules.cpp" />
     <ClCompile Include="Hooks.cpp" />
     <ClCompile Include="pch.cpp" />
-    <ClCompile Include="PluginConfig.cpp" />
     <ClCompile Include="PluginEntry.cpp" />
     <ClCompile Include="BnsPlugin.cpp" />
     <ClCompile Include="versioninfo.c" />
@@ -272,7 +271,6 @@
     <ClInclude Include="patternbyte.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="BnsPlugin.h" />
-    <ClInclude Include="PluginConfig.h" />
     <ClInclude Include="versioninfo.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

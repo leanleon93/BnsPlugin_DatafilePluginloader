@@ -1,9 +1,30 @@
-# BnsPlugin_OfflineTemplate_BinEdit
+# [PoC] BnsPlugin_DatafilePluginloader
 
-Template for BnS Plugins without git submodules and with datafile edit setup.
+## This is a BnS NEO Plugin that acts as an additional plugin loader to allow loading and reloading datafile hook plugins at runtime.
 
-## Features
-- [x] No git submodules
-- [x] Pluginconfig ini setup
-- [x] Easy hooking template
-- [x] DatafileManager template
+To avoid confusion with other bns plugins I will call this new layer "datafile plugins" in this readme.
+
+## Load order visualized
+```mermaid
+graph TD
+    D["BnS NEO Game"] --> C["pilao pluginloader<br />(winmm.dll)"]
+    C --> B["DatafilePluginloader<br />(this project)"]
+    B --> A["datafile plugins<br />(hot reloadable)"]
+```
+
+The datafile pluginloader is a normal bns plugin (DLL) that hooks into the game using the existing pilao pluginloader (winmm.dll).
+## What it does
+It allows datafile plugins to hook directly into the games "find data" process (when the game grabs data from a data table), allowing for easy reading and modification of game data.  
+Datafile plugins can be removed, updated and reloaded at runtime without restarting the game for quick testing.  
+Press `Alt+Shift+O` ingame to reload all datafile plugins.
+## Usage
+- Create a folder named `datafilePlugins` in the same directory as `BNSR.exe`. (next to the other `plugins` folder)
+- Place your datafile hook plugins (DLLs) in this folder.
+
+You can find a very lightweight example in the `ExampleDatafilePlugin` project.
+
+## Limits and thoughts
+Currently a datafile plugin has to define the table name it wants to intercept. It will not get called for any other table.  
+As a result of that, the plugin does not need to check the table name itself but can only intercept one table.  
+I realize that this might not be optimal for some use cases, but I do not have any real world plans for this project.  
+I just thought the idea of a hot-reloadable datafile hook pluginloader as an additional layer was interesting and wanted to share it.

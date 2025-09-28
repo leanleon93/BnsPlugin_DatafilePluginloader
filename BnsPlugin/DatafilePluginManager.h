@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include <filesystem>
 #include <Windows.h>
 #include "DatafilePluginsdk.h"
@@ -25,17 +26,14 @@ public:
 	DrEl* ExecuteAll(PluginParams* params, PluginParamsAutoKey* paramsAutoKey);
 	void UnloadPlugins();
 
-	void SetReloadCheckEnabled(bool enabled);
-	bool IsReloadCheckEnabled() const;
-
-	void ForceReload(const std::string& plugin_path);
-	void ForceReloadAll();
+	void ReloadAll();
 private:
 	std::string _plugins_folder;
 	const std::string _shadow_dir_path;
 	std::unordered_map<std::string, PluginHandle> _plugins; // key: original dll path
+	mutable std::unordered_map<std::wstring, bool> _table_compare_cache;
+	mutable std::unordered_map<std::wstring, std::vector<PluginHandle*>> _table_plugin_cache;
 
-	bool _reload_check_enabled = true;
 	bool PluginForTableIsRegistered(const wchar_t* table_name) const;
 	void ReloadPluginIfChanged(const std::string& plugin_path);
 	std::string CopyToShadow(const std::string& plugin_path) const;

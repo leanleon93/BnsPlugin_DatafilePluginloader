@@ -1,5 +1,4 @@
 #include "Hooks.h"
-#include "PluginConfig.h"
 #include <unordered_map>
 #include "DatafileService.h"
 #include "DatafilePluginManager.h"
@@ -56,17 +55,10 @@ bool(__fastcall* oBUIWorld_ProcessEvent)(uintptr_t* This, EInputKeyEvent* InputK
 bool __fastcall hkBUIWorld_ProcessEvent(uintptr_t* This, EInputKeyEvent* InputKeyEvent) {
 	if (!InputKeyEvent)
 		return false;
-	if (!g_PluginConfig.IsLoaded()) return oBUIWorld_ProcessEvent(This, InputKeyEvent);
 	if (InputKeyEvent->vfptr->Id(InputKeyEvent) == 2) {
-		handleKeyEventWithModifiers(InputKeyEvent, 0x50, true, true, false, []() {
-			g_DatafilePluginManager.ForceReloadAll();
+		handleKeyEventWithModifiers(InputKeyEvent, 0x4F, true, true, false, []() { //shift + alt + o
+			g_DatafilePluginManager.ReloadAll();
 			auto message = LR"(Datafile Plugins Force Reloaded)";
-			auto gameWorld = BNSClient_GetWorld();
-			BSMessaging::DisplaySystemChatMessage(gameWorld, &oAddInstantNotification, message, false);
-			});
-		handleKeyEventWithModifiers(InputKeyEvent, 0x54, true, true, false, []() {
-			g_DatafilePluginManager.SetReloadCheckEnabled(!g_DatafilePluginManager.IsReloadCheckEnabled());
-			auto message = g_DatafilePluginManager.IsReloadCheckEnabled() ? LR"(Datafile Plugin Auto-Reload Enabled)" : LR"(BnsPlugin Datafile Plugin Auto-Reload Disabled)";
 			auto gameWorld = BNSClient_GetWorld();
 			BSMessaging::DisplaySystemChatMessage(gameWorld, &oAddInstantNotification, message, false);
 			});

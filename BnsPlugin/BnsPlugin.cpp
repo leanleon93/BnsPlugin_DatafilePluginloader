@@ -5,7 +5,6 @@
 #include "searchers.h"
 #include "Hooks.h";
 #include "xorstr.hpp"
-#include "PluginConfig.h"
 #include "BSFunctions.h"
 #include "DatafileService.h"
 #ifdef _DEBUG
@@ -27,10 +26,6 @@ static void WINAPI ScannerSetup() {
 		return x.Characteristics & IMAGE_SCN_CNT_CODE;
 		});
 	data = s2->as_bytes();
-}
-
-static void WINAPI InitConfigValues() {
-	g_PluginConfig.ReloadFromConfig();
 }
 
 _AddInstantNotification oAddInstantNotification;
@@ -191,7 +186,6 @@ static void InitDatafileService() {
 
 static void WINAPI BnsPlugin_Init()
 {
-	InitConfigValues();
 	ScannerSetup();
 	InitMessaging();
 	const auto dataManagerPtr = InitDetours();
