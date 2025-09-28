@@ -1,0 +1,3 @@
+[submodule "BnsPlugin/deps/BnsPluginTables"]
+	path = BnsPlugin/deps/BnsPluginTables
+	url = https://github.com/leanleon93/BnsPluginTables

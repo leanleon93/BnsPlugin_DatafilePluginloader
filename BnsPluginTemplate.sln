@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32228.430
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BnsPlugin", "BnsPlugin\BnsPlugin.vcxproj", "{FC9900C8-8CCB-487C-89F8-42FFE5C9AC9F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		DebugEU|x64 = DebugEU|x64
+		DebugKR|x64 = DebugKR|x64
+		ReleaseEU|x64 = ReleaseEU|x64
+		ReleaseKR|x64 = ReleaseKR|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FC9900C8-8CCB-487C-89F8-42FFE5C9AC9F}.DebugEU|x64.ActiveCfg = DebugEU|x64
+		{FC9900C8-8CCB-487C-89F8-42FFE5C9AC9F}.DebugEU|x64.Build.0 = DebugEU|x64
+		{FC9900C8-8CCB-487C-89F8-42FFE5C9AC9F}.DebugKR|x64.ActiveCfg = DebugKR|x64
+		{FC9900C8-8CCB-487C-89F8-42FFE5C9AC9F}.DebugKR|x64.Build.0 = DebugKR|x64
+		{FC9900C8-8CCB-487C-89F8-42FFE5C9AC9F}.ReleaseEU|x64.ActiveCfg = ReleaseEU|x64
+		{FC9900C8-8CCB-487C-89F8-42FFE5C9AC9F}.ReleaseEU|x64.Build.0 = ReleaseEU|x64
+		{FC9900C8-8CCB-487C-89F8-42FFE5C9AC9F}.ReleaseKR|x64.ActiveCfg = ReleaseKR|x64
+		{FC9900C8-8CCB-487C-89F8-42FFE5C9AC9F}.ReleaseKR|x64.Build.0 = ReleaseKR|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {48C2D002-4BB3-418D-BBA5-8D41E74DEC2E}
+	EndGlobalSection
+EndGlobal
