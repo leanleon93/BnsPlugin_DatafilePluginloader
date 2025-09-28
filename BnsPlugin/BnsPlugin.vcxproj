@@ -23,7 +23,7 @@
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{fc9900c8-8ccb-487c-89f8-42ffe5c9ac9f}</ProjectGuid>
     <RootNamespace>BnsPlugin</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
     <ProjectName>BnsPlugin</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -77,7 +77,7 @@
     <IntDir>$(SolutionDir)obj\$(ProjectName)\$(Configuration)$(PlatformShortName.ToUpper())\</IntDir>
     <GenerateManifest>false</GenerateManifest>
     <EmbedManifest>false</EmbedManifest>
-    <TargetName>$(ProjectName)</TargetName>
+    <TargetName>DatafilePluginloader</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugKR|x64'">
     <LinkIncremental />
@@ -85,7 +85,7 @@
     <IntDir>$(SolutionDir)obj\$(ProjectName)\$(Configuration)$(PlatformShortName.ToUpper())\</IntDir>
     <GenerateManifest>false</GenerateManifest>
     <EmbedManifest>false</EmbedManifest>
-    <TargetName>$(ProjectName)</TargetName>
+    <TargetName>DatafilePluginloader</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseEU|x64'">
     <LinkIncremental />
@@ -93,7 +93,7 @@
     <IntDir>$(SolutionDir)obj\$(ProjectName)\$(Configuration)$(PlatformShortName.ToUpper())\</IntDir>
     <GenerateManifest>false</GenerateManifest>
     <EmbedManifest>false</EmbedManifest>
-    <TargetName>$(ProjectName)</TargetName>
+    <TargetName>DatafilePluginloader</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseKR|x64'">
     <LinkIncremental />
@@ -101,7 +101,7 @@
     <IntDir>$(SolutionDir)obj\$(ProjectName)\$(Configuration)$(PlatformShortName.ToUpper())\</IntDir>
     <GenerateManifest>false</GenerateManifest>
     <EmbedManifest>false</EmbedManifest>
-    <TargetName>$(ProjectName)</TargetName>
+    <TargetName>DatafilePluginloader</TargetName>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnableManifest>false</VcpkgEnableManifest>
@@ -113,7 +113,7 @@
       <PreprocessorDefinitions>TRIALDLL_EXPORT;_CRT_SECURE_NO_WARNINGS;UNICODE;_UNICODE;_DEBUG;_WINDOWS;NDEBUG;%(PreprocessorDefinitions);_BNSEU</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)vcpkg_installed\x64-windows\include;$(ProjectDir)deps;$(ProjectDir)deps\Detours;$(ProjectDir)deps\BnsPluginTables\Generated\include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <Optimization>Disabled</Optimization>
       <IntrinsicFunctions>false</IntrinsicFunctions>
@@ -146,7 +146,7 @@
       <PreprocessorDefinitions>TRIALDLL_EXPORT;_CRT_SECURE_NO_WARNINGS;UNICODE;_UNICODE;_DEBUG;_WINDOWS;NDEBUG;%(PreprocessorDefinitions);_BNSKR</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)vcpkg_installed\x64-windows\include;$(ProjectDir)deps;$(ProjectDir)deps\Detours;$(ProjectDir)deps\BnsPluginTables\Generated\include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <Optimization>Disabled</Optimization>
       <IntrinsicFunctions>false</IntrinsicFunctions>
@@ -181,7 +181,7 @@
       <PreprocessorDefinitions>NDEBUG;NOMINMAX;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_UNICODE;_WINDOWS;JM_XORSTR_DISABLE_AVX_INTRINSICS;PHNT_VERSION=PHNT_THRESHOLD;RESULT_DIAGNOSTICS_LEVEL=0;UNICODE;%(PreprocessorDefinitions);_BNSEU</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)vcpkg_installed\x64-windows\include;$(ProjectDir)deps;$(ProjectDir)deps\Detours;$(ProjectDir)deps\BnsPluginTables\Generated\include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -217,7 +217,7 @@
       <PreprocessorDefinitions>NDEBUG;NOMINMAX;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_UNICODE;_WINDOWS;JM_XORSTR_DISABLE_AVX_INTRINSICS;PHNT_VERSION=PHNT_THRESHOLD;RESULT_DIAGNOSTICS_LEVEL=0;UNICODE;%(PreprocessorDefinitions);_BNSKR</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)vcpkg_installed\x64-windows\include;$(ProjectDir)deps;$(ProjectDir)deps\Detours;$(ProjectDir)deps\BnsPluginTables\Generated\include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -248,6 +248,7 @@
     <ClCompile Include="BSFunctions.cpp" />
     <ClCompile Include="callbacks.cpp" />
     <ClCompile Include="Data.cpp" />
+    <ClCompile Include="DatafilePluginManager.cpp" />
     <ClCompile Include="DatafileService.cpp" />
     <ClCompile Include="deps\Detours\src\detours.cpp" />
     <ClCompile Include="deps\Detours\src\disasm.cpp" />
@@ -263,6 +264,8 @@
   <ItemGroup>
     <ClInclude Include="BSFunctions.h" />
     <ClInclude Include="Data.h" />
+    <ClInclude Include="DatafilePluginManager.h" />
+    <ClInclude Include="DatafilePluginsdk.h" />
     <ClInclude Include="DatafileService.h" />
     <ClInclude Include="DrEl.h" />
     <ClInclude Include="Hooks.h" />

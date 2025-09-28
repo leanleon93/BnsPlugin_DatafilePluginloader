@@ -54,5 +54,5 @@ void PluginConfig::ReloadFromConfig()
 
 bool PluginConfig::IsLoaded() const
 {
-	return Loaded;
+	return true;
 }

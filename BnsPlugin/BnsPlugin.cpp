@@ -171,9 +171,8 @@ static __int64* WINAPI InitDetours() {
 	auto pattern = xorstr_("0F B6 C0 85 C0 75 07 32 C0 E9 ?? 07 00 00 E8 ?? ?? ?? ?? 48 ?? ?? ?? ?? 00 00 00 48 ?? ?? ?? ?? 00 00 00 48 8B 00 48 8B ?? ?? ?? ?? 00 00 48 8B ?? ?? ?? ?? 00 00 FF 90 ?? 00 00 00 48 8B D0 48 ?? ?? ?? ??");
 	auto dataManagerPtr = HookDataManager(pattern, 0xF);
 
-	//TODO: Check hooks
-	//HookFunction(xorstr_("48 8B 49 14 E9 ?? ?? ?? ?? 48 81 C1 D4 01 00 00 48 8B 01 48 FF 60 18 CC"), -0x06, oFind_b8, hkFind_b8, "Find_b8"); //shorter function
-	//HookFunction(xorstr_("48 8B 49 14 E9 ?? ?? ?? ?? 48 3B 91 EC 01 00 00 73 0C 48 8B 81 D4 01 00 00 48 8B 04 D0 C3 33 C0 C3"), -0x06, oFind_b8AutoId, hkFind_b8AutoId, "Find_b8AutoId"); //longer function
+	HookFunction(xorstr_("48 8B 49 14 E9 ?? ?? ?? ?? 48 81 C1 D4 01 00 00 48 8B 01 48 FF 60 18 CC"), -0x06, oFind_b8, hkFind_b8, "Find_b8"); //shorter function
+	HookFunction(xorstr_("48 8B 49 14 E9 ?? ?? ?? ?? 48 3B 91 EC 01 00 00 73 0C 48 8B 81 D4 01 00 00 48 8B 04 D0 C3 33 C0 C3"), -0x06, oFind_b8AutoId, hkFind_b8AutoId, "Find_b8AutoId"); //longer function
 
 	GetFunctionPtr(xorstr_("48 8B 05 ?? ?? ?? ?? 48 85 C0 74 ?? 48 8B 80 ?? ?? ?? ?? C3 C3 CC CC CC CC CC CC CC CC CC CC CC 48 8B 05"), 0x00, BNSClient_GetWorld, "BNSClient_GetWorld");
 

@@ -65,6 +65,7 @@ std::string EngineKeyStateString(EngineKeyStateType type) {
 		return "EKS_AXIS";
 		break;
 	default:
+		return "";
 		break;
 	}
 }

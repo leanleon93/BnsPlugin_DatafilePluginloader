@@ -5,6 +5,8 @@ VisualStudioVersion = 17.1.32228.430
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BnsPlugin", "BnsPlugin\BnsPlugin.vcxproj", "{FC9900C8-8CCB-487C-89F8-42FFE5C9AC9F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExampleDatafilePlugin", "ExampleDatafilePlugin\ExampleDatafilePlugin.vcxproj", "{363D8AA3-70DA-4B28-AA04-94853D275455}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		DebugEU|x64 = DebugEU|x64
@@ -21,6 +23,14 @@ Global
 		{FC9900C8-8CCB-487C-89F8-42FFE5C9AC9F}.ReleaseEU|x64.Build.0 = ReleaseEU|x64
 		{FC9900C8-8CCB-487C-89F8-42FFE5C9AC9F}.ReleaseKR|x64.ActiveCfg = ReleaseKR|x64
 		{FC9900C8-8CCB-487C-89F8-42FFE5C9AC9F}.ReleaseKR|x64.Build.0 = ReleaseKR|x64
+		{363D8AA3-70DA-4B28-AA04-94853D275455}.DebugEU|x64.ActiveCfg = Debug|x64
+		{363D8AA3-70DA-4B28-AA04-94853D275455}.DebugEU|x64.Build.0 = Debug|x64
+		{363D8AA3-70DA-4B28-AA04-94853D275455}.DebugKR|x64.ActiveCfg = Debug|x64
+		{363D8AA3-70DA-4B28-AA04-94853D275455}.DebugKR|x64.Build.0 = Debug|x64
+		{363D8AA3-70DA-4B28-AA04-94853D275455}.ReleaseEU|x64.ActiveCfg = Release|x64
+		{363D8AA3-70DA-4B28-AA04-94853D275455}.ReleaseEU|x64.Build.0 = Release|x64
+		{363D8AA3-70DA-4B28-AA04-94853D275455}.ReleaseKR|x64.ActiveCfg = Release|x64
+		{363D8AA3-70DA-4B28-AA04-94853D275455}.ReleaseKR|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

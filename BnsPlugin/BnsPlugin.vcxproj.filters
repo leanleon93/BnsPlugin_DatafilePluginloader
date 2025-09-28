@@ -57,6 +57,12 @@
     <ClCompile Include="Data.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DatafilePluginManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ExamplePlugin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="versioninfo.h">
@@ -87,6 +93,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DatafileService.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DatafilePluginsdk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DatafilePluginManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

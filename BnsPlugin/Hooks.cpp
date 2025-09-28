@@ -2,6 +2,7 @@
 #include "PluginConfig.h"
 #include <unordered_map>
 #include "DatafileService.h"
+#include "DatafilePluginManager.h"
 
 extern _AddInstantNotification oAddInstantNotification;
 
@@ -58,8 +59,14 @@ bool __fastcall hkBUIWorld_ProcessEvent(uintptr_t* This, EInputKeyEvent* InputKe
 	if (!g_PluginConfig.IsLoaded()) return oBUIWorld_ProcessEvent(This, InputKeyEvent);
 	if (InputKeyEvent->vfptr->Id(InputKeyEvent) == 2) {
 		handleKeyEventWithModifiers(InputKeyEvent, 0x50, true, true, false, []() {
-			g_PluginConfig.ReloadFromConfig();
-			auto message = LR"(BnsPlugin Config Reloaded)";
+			g_DatafilePluginManager.ForceReloadAll();
+			auto message = LR"(Datafile Plugins Force Reloaded)";
+			auto gameWorld = BNSClient_GetWorld();
+			BSMessaging::DisplaySystemChatMessage(gameWorld, &oAddInstantNotification, message, false);
+			});
+		handleKeyEventWithModifiers(InputKeyEvent, 0x54, true, true, false, []() {
+			g_DatafilePluginManager.SetReloadCheckEnabled(!g_DatafilePluginManager.IsReloadCheckEnabled());
+			auto message = g_DatafilePluginManager.IsReloadCheckEnabled() ? LR"(Datafile Plugin Auto-Reload Enabled)" : LR"(BnsPlugin Datafile Plugin Auto-Reload Disabled)";
 			auto gameWorld = BNSClient_GetWorld();
 			BSMessaging::DisplaySystemChatMessage(gameWorld, &oAddInstantNotification, message, false);
 			});
@@ -72,6 +79,10 @@ bool __fastcall hkBUIWorld_ProcessEvent(uintptr_t* This, EInputKeyEvent* InputKe
 /// </summary>
 DrEl* (__fastcall* oFind_b8)(DrMultiKeyTable* thisptr, unsigned __int64 key);
 DrEl* __fastcall hkFind_b8(DrMultiKeyTable* thisptr, unsigned __int64 key) {
+	auto* pluginResult = g_DatafilePluginManager.ExecuteAll(new PluginParams{ thisptr, g_DatafileService.GetDataManager(), key, oFind_b8 }, nullptr);
+	if (pluginResult != nullptr) {
+		return pluginResult;
+	}
 	return oFind_b8(thisptr, key);
 }
 
@@ -80,5 +91,9 @@ DrEl* __fastcall hkFind_b8(DrMultiKeyTable* thisptr, unsigned __int64 key) {
 /// </summary>
 DrEl* (__fastcall* oFind_b8AutoId)(DrMultiKeyTable* thisptr, unsigned __int64 autokey);
 DrEl* __fastcall hkFind_b8AutoId(DrMultiKeyTable* thisptr, unsigned __int64 autokey) {
+	auto* pluginResult = g_DatafilePluginManager.ExecuteAll(nullptr, new PluginParamsAutoKey{ thisptr, g_DatafileService.GetDataManager(), autokey, oFind_b8AutoId });
+	if (pluginResult != nullptr) {
+		return pluginResult;
+	}
 	return oFind_b8AutoId(thisptr, autokey);
 }
