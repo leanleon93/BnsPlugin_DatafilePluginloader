@@ -1,4 +1,5 @@
 #include "DatafilePluginsdk.h"
+#include <EU/text/AAA_text_RecordBase.h>
 
 static PluginReturnData __fastcall DatafileItemDetour(PluginExecuteParams* params) {
 	if (params == nullptr || params->table == nullptr || params->dataManager == nullptr) {
@@ -17,15 +18,22 @@ static PluginReturnData __fastcall DatafileItemDetour(PluginExecuteParams* param
 	return {};
 }
 
+const std::wstring customText = L"<arg p=\"1:integer\"/> Fake Frames";
+
+//Changes the FPS indicator text to Fake Frames instead
 static PluginReturnData __fastcall DatafileTextDetour(PluginExecuteParams* params) {
 	if (params == nullptr || params->table == nullptr || params->dataManager == nullptr) {
 		return {};
 	}
-	// Example: Return a specific item for a known key
-	// Hongmoon's Blessing Recovery Potion -> ncoin test item
+
 	unsigned __int64 key = params->key;
 
-	printf("DatafileTextDetour called with key: %llu\n", key);
+	if (key == 690565) {
+		DrEl* record = params->oFind(params->table, params->key);
+		auto textRecord = (BnsTables::EU::text_Record*)record;
+		//printf("ExampleItemPlugin: Original text for key 690565: %ls\n", textRecord->text.ReadableText);
+		textRecord->text.ReadableText = const_cast<wchar_t*>(customText.c_str());
+	}
 
 	return {};
 }
@@ -45,7 +53,7 @@ PluginTableHandler handlers[] = {
 };
 
 DEFINE_PLUGIN_API_VERSION()
-DEFINE_PLUGIN_IDENTIFIER("ExampleItemPlugin")
+DEFINE_PLUGIN_IDENTIFIER("ExampleDatafilePlugin")
 DEFINE_PLUGIN_VERSION("2.0.1")
 DEFINE_PLUGIN_INIT(DatafileItemInit)
 DEFINE_PLUGIN_TABLE_HANDLERS(handlers)
