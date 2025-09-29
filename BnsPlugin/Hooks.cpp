@@ -89,7 +89,7 @@ static void DisplaySystemChatMessage(const wchar_t* message, bool playSound) {
 /// </summary>
 DrEl* (__fastcall* oFind_b8)(DrMultiKeyTable* thisptr, unsigned __int64 key);
 DrEl* __fastcall hkFind_b8(DrMultiKeyTable* thisptr, unsigned __int64 key) {
-	auto* pluginResult = g_DatafilePluginManager.ExecuteAll(new PluginParams{ thisptr, key, oFind_b8, false, g_DatafileService.GetDataManager(), &DisplaySystemChatMessage });
+	auto* pluginResult = g_DatafilePluginManager.ExecuteAll(new PluginExecuteParams{ g_DatafileService.GetDataManager(), thisptr, key, oFind_b8, false, &DisplaySystemChatMessage });
 	if (pluginResult != nullptr) {
 		return pluginResult;
 	}
@@ -101,7 +101,7 @@ DrEl* __fastcall hkFind_b8(DrMultiKeyTable* thisptr, unsigned __int64 key) {
 /// </summary>
 DrEl* (__fastcall* oFind_b8AutoId)(DrMultiKeyTable* thisptr, unsigned __int64 autokey);
 DrEl* __fastcall hkFind_b8AutoId(DrMultiKeyTable* thisptr, unsigned __int64 autokey) {
-	auto* pluginResult = g_DatafilePluginManager.ExecuteAll(new PluginParams{ thisptr, autokey, oFind_b8AutoId, true, g_DatafileService.GetDataManager(), &DisplaySystemChatMessage });
+	auto* pluginResult = g_DatafilePluginManager.ExecuteAll(new PluginExecuteParams{ g_DatafileService.GetDataManager(), thisptr, autokey, oFind_b8AutoId, true, &DisplaySystemChatMessage });
 	if (pluginResult != nullptr) {
 		return pluginResult;
 	}

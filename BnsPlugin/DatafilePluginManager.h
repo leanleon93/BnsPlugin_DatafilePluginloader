@@ -8,10 +8,10 @@
 
 struct PluginHandle {
 	HMODULE dll = nullptr;
-	PluginExecuteFunc execute = nullptr;
+	std::vector<const PluginTableHandler*> tableHandlers;
 	PluginIdentifierFunc identifier = nullptr;
 	PluginVersionFunc version = nullptr;
-	PluginTableNameFunc tableName = nullptr;
+	PluginInitFunc init = nullptr;
 	std::filesystem::file_time_type last_write_time;
 	std::string shadow_path;
 	bool load_failed = false;
@@ -22,7 +22,7 @@ class DatafilePluginManager {
 public:
 	explicit DatafilePluginManager(const std::string& folder);
 	~DatafilePluginManager();
-	DrEl* ExecuteAll(PluginParams* params);
+	DrEl* ExecuteAll(PluginExecuteParams* params);
 	void UnloadPlugins();
 
 	std::vector<std::string> ReloadAll();
@@ -31,7 +31,7 @@ private:
 	const std::string _shadow_dir_path;
 	std::unordered_map<std::string, PluginHandle> _plugins; // key: original dll path
 	mutable std::unordered_map<std::wstring, bool> _table_compare_cache;
-	mutable std::unordered_map<std::wstring, std::vector<PluginHandle*>> _table_plugin_cache;
+	mutable std::unordered_map<std::wstring, std::vector<std::pair<PluginHandle*, const PluginTableHandler*>>> _table_plugin_cache;
 
 	bool PluginForTableIsRegistered(const wchar_t* table_name) const;
 	std::string ReloadPluginIfChanged(const std::string& plugin_path);

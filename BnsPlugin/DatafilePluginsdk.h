@@ -7,7 +7,7 @@
 #define PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
-constexpr auto PLUGIN_API_VERSION = 2;
+constexpr auto PLUGIN_API_VERSION = 3;
 
 struct PluginReturnData {
 	DrEl* drEl = nullptr;
@@ -15,21 +15,37 @@ struct PluginReturnData {
 
 typedef void (*DisplaySystemChatMessageFunc)(const wchar_t*, bool);
 
-struct PluginParams {
+struct PluginParamsBase {
+	Data::DataManager* dataManager;
+};
+
+struct PluginExecuteParams : PluginParamsBase {
 	DrMultiKeyTable* table;
 	unsigned __int64 key;
 	DrEl* (__fastcall* oFind)(DrMultiKeyTable* thisptr, unsigned __int64 key);
 	bool isAutoKey;
-	Data::DataManager* dataManager;
 	DisplaySystemChatMessageFunc displaySystemChatMessage;
 };
 
+struct PluginInitParams : PluginParamsBase {
+	// Future expansion
+};
+
+struct PluginTableHandler {
+	const wchar_t* tableName;
+	PluginReturnData(*executeFunc)(PluginExecuteParams*);
+};
+
 // Function pointer types
-typedef PluginReturnData(*PluginExecuteFunc)(PluginParams*);
+typedef PluginReturnData(*PluginExecuteFunc)(PluginExecuteParams*);
 typedef const char* (*PluginIdentifierFunc)();
 typedef int (*PluginApiVersionFunc)();
 typedef const char* (*PluginVersionFunc)();
-typedef const wchar_t* (*PluginTableNameFunc)();
+typedef void (*PluginInitFunc)(PluginInitParams*);
+
+typedef size_t(*PluginTableHandlerCountFunc)();
+typedef const PluginTableHandler* (*PluginTableHandlersFunc)();
+
 
 // Macros to enforce plugin exports
 #define DEFINE_PLUGIN_API_VERSION() \
@@ -41,8 +57,9 @@ typedef const wchar_t* (*PluginTableNameFunc)();
 #define DEFINE_PLUGIN_VERSION(ver) \
     PLUGIN_EXPORT const char* PluginVersion() { return ver; }
 
-#define DEFINE_PLUGIN_EXECUTE(fn) \
-    PLUGIN_EXPORT PluginReturnData PluginExecute(PluginParams* params) { return fn(params); }
+#define DEFINE_PLUGIN_INIT(fn) \
+	PLUGIN_EXPORT void PluginInit(PluginInitParams* params) { fn(params); }
 
-#define DEFINE_PLUGIN_TABLE_NAME(name) \
-	PLUGIN_EXPORT const wchar_t* PluginTableName() { return name; }
+#define DEFINE_PLUGIN_TABLE_HANDLERS(handlersArray) \
+	PLUGIN_EXPORT size_t PluginTableHandlerCount() { return sizeof(handlersArray)/sizeof(handlersArray[0]); } \
+	PLUGIN_EXPORT const PluginTableHandler* PluginTableHandlers() { return handlersArray; }
