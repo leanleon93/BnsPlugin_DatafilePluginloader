@@ -1,4 +1,4 @@
-# [PoC] BnsPlugin_DatafilePluginloader
+# BnsPlugin_DatafilePluginloader
 
 ## This is a BnS NEO Plugin that acts as an additional plugin loader to allow loading and reloading datafile hook plugins at runtime.
 
