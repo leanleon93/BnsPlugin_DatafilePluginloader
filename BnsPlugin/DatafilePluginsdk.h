@@ -7,30 +7,25 @@
 #define PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
-constexpr auto PLUGIN_API_VERSION = 1;
+constexpr auto PLUGIN_API_VERSION = 2;
 
 struct PluginReturnData {
 	DrEl* drEl = nullptr;
 };
 
-struct PluginParamsBase {
+typedef void (*DisplaySystemChatMessageFunc)(const wchar_t*, bool);
+
+struct PluginParams {
 	DrMultiKeyTable* table;
-	Data::DataManager* dataManager;
-};
-
-struct PluginParams : PluginParamsBase {
 	unsigned __int64 key;
-	DrEl* (__fastcall* oFind_b8)(DrMultiKeyTable* thisptr, unsigned __int64 key);
-};
-
-struct PluginParamsAutoKey : PluginParamsBase {
-	unsigned __int64 autokey;
-	DrEl* (__fastcall* oFind_b8AutoId)(DrMultiKeyTable* thisptr, unsigned __int64 autokey);
+	DrEl* (__fastcall* oFind)(DrMultiKeyTable* thisptr, unsigned __int64 key);
+	bool isAutoKey;
+	Data::DataManager* dataManager;
+	DisplaySystemChatMessageFunc displaySystemChatMessage;
 };
 
 // Function pointer types
 typedef PluginReturnData(*PluginExecuteFunc)(PluginParams*);
-typedef PluginReturnData(*PluginExecuteAutoKeyFunc)(PluginParamsAutoKey*);
 typedef const char* (*PluginIdentifierFunc)();
 typedef int (*PluginApiVersionFunc)();
 typedef const char* (*PluginVersionFunc)();
@@ -48,9 +43,6 @@ typedef const wchar_t* (*PluginTableNameFunc)();
 
 #define DEFINE_PLUGIN_EXECUTE(fn) \
     PLUGIN_EXPORT PluginReturnData PluginExecute(PluginParams* params) { return fn(params); }
-
-#define DEFINE_PLUGIN_EXECUTE_AUTOKEY(fn) \
-    PLUGIN_EXPORT PluginReturnData PluginExecuteAutoKey(PluginParamsAutoKey* params) { return fn(params); }
 
 #define DEFINE_PLUGIN_TABLE_NAME(name) \
 	PLUGIN_EXPORT const wchar_t* PluginTableName() { return name; }

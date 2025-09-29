@@ -9,7 +9,6 @@
 struct PluginHandle {
 	HMODULE dll = nullptr;
 	PluginExecuteFunc execute = nullptr;
-	PluginExecuteAutoKeyFunc executeAutokey = nullptr;
 	PluginIdentifierFunc identifier = nullptr;
 	PluginVersionFunc version = nullptr;
 	PluginTableNameFunc tableName = nullptr;
@@ -23,10 +22,10 @@ class DatafilePluginManager {
 public:
 	explicit DatafilePluginManager(const std::string& folder);
 	~DatafilePluginManager();
-	DrEl* ExecuteAll(PluginParams* params, PluginParamsAutoKey* paramsAutoKey);
+	DrEl* ExecuteAll(PluginParams* params);
 	void UnloadPlugins();
 
-	void ReloadAll();
+	std::vector<std::string> ReloadAll();
 private:
 	std::string _plugins_folder;
 	const std::string _shadow_dir_path;
@@ -35,7 +34,7 @@ private:
 	mutable std::unordered_map<std::wstring, std::vector<PluginHandle*>> _table_plugin_cache;
 
 	bool PluginForTableIsRegistered(const wchar_t* table_name) const;
-	void ReloadPluginIfChanged(const std::string& plugin_path);
+	std::string ReloadPluginIfChanged(const std::string& plugin_path);
 	std::string CopyToShadow(const std::string& plugin_path) const;
 	void ensure_shadow_dir() const;
 	static std::string get_temp_shadow_dir(const std::string& app_name);

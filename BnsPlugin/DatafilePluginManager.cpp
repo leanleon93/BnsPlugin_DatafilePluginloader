@@ -4,7 +4,6 @@
 #include <random>
 
 namespace fs = std::filesystem;
-static constexpr int REQUIRED_PLUGIN_API_VERSION = 1;
 static constexpr const char* PLUGINLOADER_IDENTIFIER = "LeanDatafilePluginLoader";
 
 DatafilePluginManager g_DatafilePluginManager("datafilePlugins");
@@ -73,15 +72,20 @@ void DatafilePluginManager::UnloadPlugins() {
 	catch (...) {}
 }
 
-void DatafilePluginManager::ReloadAll() {
+std::vector<std::string> DatafilePluginManager::ReloadAll() {
+	std::vector<std::string> results;
 	// Remove all plugin handles so they will be forcibly loaded next time
 	UnloadPlugins();
 
 	for (const auto& entry : fs::directory_iterator(_plugins_folder)) {
 		if (entry.path().extension() == ".dll") {
-			ReloadPluginIfChanged(entry.path().string());
+			auto res = ReloadPluginIfChanged(entry.path().string());
+			if (!res.empty()) {
+				results.push_back(res);
+			}
 		}
 	}
+	return results;
 }
 
 bool DatafilePluginManager::PluginForTableIsRegistered(const wchar_t* table_name) const {
@@ -104,22 +108,23 @@ bool DatafilePluginManager::PluginForTableIsRegistered(const wchar_t* table_name
 	return false;
 }
 
-void DatafilePluginManager::ReloadPluginIfChanged(const std::string& plugin_path) {
+std::string DatafilePluginManager::ReloadPluginIfChanged(const std::string& plugin_path) {
+	std::string result;
 	fs::path orig_path(plugin_path);
 	if (!fs::exists(orig_path)) {
 		std::cerr << "Plugin file does not exist: " << plugin_path << std::endl;
-		return;
+		return result;
 	}
 	auto current_write_time = fs::last_write_time(orig_path);
 	auto& handle = _plugins[plugin_path];
 
 	// If previous load failed and file hasn't changed, skip reload attempt
 	if (handle.load_failed && handle.last_write_time == current_write_time) {
-		return;
+		return result;
 	}
 	// Only reload if not loaded or write_time changed or previous load failed
 	if (handle.dll && handle.last_write_time == current_write_time && !handle.load_failed) {
-		return;
+		return result;
 	}
 	// Unload old DLL & cleanup
 	if (handle.dll) {
@@ -143,19 +148,16 @@ void DatafilePluginManager::ReloadPluginIfChanged(const std::string& plugin_path
 	HMODULE dll = LoadLibraryA(shadow_path.c_str());
 	if (dll) {
 		auto execute = (PluginExecuteFunc)GetProcAddress(dll, "PluginExecute");
-		auto executeAutokey = (PluginExecuteAutoKeyFunc)GetProcAddress(dll, "PluginExecuteAutoKey");
 		auto identifier = (PluginIdentifierFunc)GetProcAddress(dll, "PluginIdentifier");
 		auto api_version = (PluginApiVersionFunc)GetProcAddress(dll, "PluginApiVersion");
 		auto plugin_version = (PluginVersionFunc)GetProcAddress(dll, "PluginVersion");
 		auto table_name = (PluginTableNameFunc)GetProcAddress(dll, "PluginTableName");
-		if ((execute || executeAutokey) && identifier && api_version && plugin_version && table_name) {
+		if (execute && identifier && api_version && plugin_version && table_name) {
 			int reported_api_version = api_version();
-			if (reported_api_version == REQUIRED_PLUGIN_API_VERSION) {
+			if (reported_api_version == PLUGIN_API_VERSION) {
 				handle.dll = dll;
 				if (execute)
 					handle.execute = execute;
-				if (executeAutokey)
-					handle.executeAutokey = executeAutokey;
 				handle.tableName = table_name;
 				handle.identifier = identifier;
 				handle.version = plugin_version;
@@ -164,13 +166,14 @@ void DatafilePluginManager::ReloadPluginIfChanged(const std::string& plugin_path
 				std::cout << "Loaded: " << identifier()
 					<< " (API v" << reported_api_version
 					<< ", Plugin v" << plugin_version() << ")\n";
+				result = std::string(handle.identifier()) + " v" + handle.version();
 			}
 			else {
 				handle.load_failed = true;
 				handle.fail_reason = "Incompatible API version";
 				std::cerr << "Skipped: " << identifier()
 					<< " (incompatible API version " << reported_api_version
-					<< ", required " << REQUIRED_PLUGIN_API_VERSION << ")\n";
+					<< ", required " << PLUGIN_API_VERSION << ")\n";
 				FreeLibrary(dll);
 				fs::remove(shadow_path);
 				handle = PluginHandle{ .last_write_time = current_write_time, .load_failed = true, .fail_reason = handle.fail_reason };
@@ -192,15 +195,13 @@ void DatafilePluginManager::ReloadPluginIfChanged(const std::string& plugin_path
 		if (fs::exists(shadow_path)) fs::remove(shadow_path);
 		handle = PluginHandle{ .last_write_time = current_write_time, .load_failed = true, .fail_reason = handle.fail_reason };
 	}
+	return result;
 }
 
-DrEl* DatafilePluginManager::ExecuteAll(PluginParams* params, PluginParamsAutoKey* paramsAutoKey) {
-	if (params == nullptr && paramsAutoKey == nullptr)
+DrEl* DatafilePluginManager::ExecuteAll(PluginParams* params) {
+	if (params == nullptr)
 		return nullptr;
 	if (params != nullptr && !PluginForTableIsRegistered(params->table->_tabledef->name)) {
-		return nullptr;
-	}
-	if (paramsAutoKey != nullptr && !PluginForTableIsRegistered(paramsAutoKey->table->_tabledef->name)) {
 		return nullptr;
 	}
 
@@ -238,38 +239,5 @@ DrEl* DatafilePluginManager::ExecuteAll(PluginParams* params, PluginParamsAutoKe
 		}
 	}
 
-	if (paramsAutoKey != nullptr) {
-		std::wstring key(paramsAutoKey->table->_tabledef->name ? paramsAutoKey->table->_tabledef->name : L"");
-		auto it = _table_plugin_cache.find(key);
-		if (it == _table_plugin_cache.end()) {
-			std::vector<PluginHandle*> handles;
-			for (auto& kv : _plugins) {
-				if (kv.second.dll && kv.second.tableName && paramsAutoKey->table && paramsAutoKey->table->_tabledef && paramsAutoKey->table->_tabledef->name && wcscmp(kv.second.tableName(), paramsAutoKey->table->_tabledef->name) == 0) {
-					handles.push_back(&kv.second);
-				}
-			}
-			_table_plugin_cache[key] = handles;
-			it = _table_plugin_cache.find(key);
-		}
-		for (PluginHandle* handle : it->second) {
-			if (handle->executeAutokey) {
-				try {
-					auto pluginReturnValue = handle->executeAutokey(paramsAutoKey);
-					if (pluginReturnValue.drEl != nullptr)
-						return pluginReturnValue.drEl;
-				}
-				catch (const std::exception& ex) {
-#ifdef _DEBUG
-					std::cerr << "Exception in datafile plugin " << (handle->identifier ? handle->identifier() : "unknown") << ": " << ex.what() << std::endl;
-#endif
-				}
-				catch (...) {
-#ifdef _DEBUG
-					std::cerr << "Unknown exception in datafile plugin " << (handle->identifier ? handle->identifier() : "unknown") << std::endl;
-#endif
-				}
-			}
-		}
-	}
 	return nullptr;
 }
