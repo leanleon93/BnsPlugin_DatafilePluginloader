@@ -1,19 +1,22 @@
 #pragma once
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 #include <filesystem>
+#include <memory>
 #include <Windows.h>
 #include "DatafilePluginsdk.h"
 
+// RAII / data handle for a plugin. Stored behind stable unique_ptr so pointers cached elsewhere remain valid.
 struct PluginHandle {
 	HMODULE dll = nullptr;
-	std::vector<const PluginTableHandler*> tableHandlers;
+	std::vector<const PluginTableHandler*> tableHandlers; // raw pointers owned by the plugin DLL
 	PluginIdentifierFunc identifier = nullptr;
 	PluginVersionFunc version = nullptr;
 	PluginInitFunc init = nullptr;
-	std::filesystem::file_time_type last_write_time;
-	std::string shadow_path;
+	std::filesystem::file_time_type last_write_time{};
+	std::string shadow_path; // copied DLL path (shadow copy)
 	bool load_failed = false;
 	std::string fail_reason;
 };
@@ -25,19 +28,21 @@ public:
 	DrEl* ExecuteAll(PluginExecuteParams* params);
 	void UnloadPlugins();
 
-	std::vector<std::string> ReloadAll();
+	[[nodiscard]] std::vector<std::string> ReloadAll();
 private:
-	std::string _plugins_folder;
-	const std::string _shadow_dir_path;
-	std::unordered_map<std::string, PluginHandle> _plugins; // key: original dll path
-	mutable std::unordered_map<std::wstring, bool> _table_compare_cache;
-	mutable std::unordered_map<std::wstring, std::vector<std::pair<PluginHandle*, const PluginTableHandler*>>> _table_plugin_cache;
+	std::string _plugins_folder; // source folder for plugins
+	const std::string _shadow_dir_path; // temp shadow dir where we load from
+	// key: original dll path -> stable owning pointer for PluginHandle
+	std::unordered_map<std::string, std::unique_ptr<PluginHandle>> _plugins;
+	// caches
+	mutable std::unordered_map<std::wstring, bool> _table_compare_cache; // table name -> any plugin registered?
+	mutable std::unordered_map<std::wstring, std::vector<std::pair<PluginHandle*, const PluginTableHandler*>>> _table_plugin_cache; // table name -> (plugin, handler) list
 
-	bool PluginForTableIsRegistered(const wchar_t* table_name) const;
-	std::string ReloadPluginIfChanged(const std::string& plugin_path);
-	std::string CopyToShadow(const std::string& plugin_path) const;
+	[[nodiscard]] bool PluginForTableIsRegistered(const wchar_t* table_name) const;
+	[[nodiscard]] std::string ReloadPluginIfChanged(std::string_view plugin_path);
+	[[nodiscard]] std::string CopyToShadow(std::string_view plugin_path) const;
 	void ensure_shadow_dir() const;
-	static std::string get_temp_shadow_dir(const std::string& app_name);
+	[[nodiscard]] static std::string get_temp_shadow_dir(const std::string& app_name);
 };
 
 extern DatafilePluginManager g_DatafilePluginManager;
