@@ -14,7 +14,7 @@ graph TD
 
 The datafile pluginloader is a normal bns plugin (DLL) that hooks into the game using the existing pilao pluginloader (winmm.dll).
 ## What it does
-It allows datafile plugins to hook directly into the games "find data" process (when the game grabs data from a data table), allowing for easy reading and modification of game data.  
+It allows extremely lightweight datafile plugins to hook directly into the games "find data" process (when the game grabs data from a data table), allowing for easy reading and modification of game data.  
 In combination with my BnsPluginTables this can be used to modify game data on the fly.  
 Datafile plugins can be removed, updated and reloaded at runtime without restarting the game for quick testing.  
 Press `Alt+Shift+O` ingame to reload all datafile plugins.
@@ -24,8 +24,5 @@ Press `Alt+Shift+O` ingame to reload all datafile plugins.
 
 You can find a very lightweight example in the `ExampleDatafilePlugin` project.
 
-## Limits and thoughts
-Currently a datafile plugin has to define the table name it wants to intercept. It will not get called for any other table.  
-As a result of that, the plugin does not need to check the table name itself but can only intercept one table.  
-I realize that this might not be optimal for some use cases, but I do not have any real world plans for this project.  
-I just thought the idea of a hot-reloadable datafile hook pluginloader as an additional layer was interesting and wanted to share it.
+## Thoughts
+I just thought the idea of a hot-reloadable datafile pluginloader as an additional layer was interesting and wanted to share it.

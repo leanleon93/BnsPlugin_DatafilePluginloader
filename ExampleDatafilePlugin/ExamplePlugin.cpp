@@ -38,6 +38,7 @@ static PluginReturnData __fastcall DatafileTextDetour(PluginExecuteParams* param
 	return {};
 }
 
+//NEVER CALLED
 static void __fastcall DatafileItemInit(PluginInitParams* params) {
 	// Initialization code if needed
 	if (params == nullptr || params->dataManager == nullptr) {
