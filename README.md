@@ -22,7 +22,7 @@ Press `Alt+Shift+O` ingame to reload all datafile plugins.
 - Create a folder named `datafilePlugins` in the same directory as `BNSR.exe`. (next to the other `plugins` folder)
 - Place your datafile hook plugins (DLLs) in this folder.
 
-You can find a very lightweight example in the `ExampleDatafilePlugin` project.
-
+You can find a very lightweight example in the `ExampleDatafilePlugin` project.  
+Or a slightly bigger real world example in `ArtifactDatafilePlugin` project.
 ## Thoughts
 I just thought the idea of a hot-reloadable datafile pluginloader as an additional layer was interesting and wanted to share it.
