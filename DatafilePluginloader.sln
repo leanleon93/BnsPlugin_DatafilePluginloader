@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ArtifactDatafilePlugin", "ArtifactDatafilePlugin\ArtifactDatafilePlugin.vcxproj", "{26475F13-C4E9-48B1-9D9E-2155B9557BAF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		DebugEU|x64 = DebugEU|x64
@@ -36,6 +38,14 @@ Global
 		{363D8AA3-70DA-4B28-AA04-94853D275455}.ReleaseEU|x64.Build.0 = Release|x64
 		{363D8AA3-70DA-4B28-AA04-94853D275455}.ReleaseKR|x64.ActiveCfg = Release|x64
 		{363D8AA3-70DA-4B28-AA04-94853D275455}.ReleaseKR|x64.Build.0 = Release|x64
+		{26475F13-C4E9-48B1-9D9E-2155B9557BAF}.DebugEU|x64.ActiveCfg = Debug|x64
+		{26475F13-C4E9-48B1-9D9E-2155B9557BAF}.DebugEU|x64.Build.0 = Debug|x64
+		{26475F13-C4E9-48B1-9D9E-2155B9557BAF}.DebugKR|x64.ActiveCfg = Debug|x64
+		{26475F13-C4E9-48B1-9D9E-2155B9557BAF}.DebugKR|x64.Build.0 = Debug|x64
+		{26475F13-C4E9-48B1-9D9E-2155B9557BAF}.ReleaseEU|x64.ActiveCfg = Release|x64
+		{26475F13-C4E9-48B1-9D9E-2155B9557BAF}.ReleaseEU|x64.Build.0 = Release|x64
+		{26475F13-C4E9-48B1-9D9E-2155B9557BAF}.ReleaseKR|x64.ActiveCfg = Release|x64
+		{26475F13-C4E9-48B1-9D9E-2155B9557BAF}.ReleaseKR|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

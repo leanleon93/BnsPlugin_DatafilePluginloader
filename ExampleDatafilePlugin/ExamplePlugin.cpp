@@ -6,11 +6,11 @@ static PluginReturnData __fastcall DatafileItemDetour(PluginExecuteParams* param
 		return {};
 	}
 	// Example: Return a specific item for a known key
-	// Hongmoon's Blessing Recovery Potion -> ncoin test item
+	// Changes Hongmoon Uniform to Brashk Outfit
 	unsigned __int64 key = params->key;
 
-	if (key == 4295902840) {
-		DrEl* result = params->oFind(params->table, 4294967396);
+	if (key == 4295877296) {
+		DrEl* result = params->oFind(params->table, 4295917336);
 		//params->displaySystemChatMessage(L"ExampleItemPlugin: Redirected item key 4295902840 to 4294967396", false);
 		return { result };
 	}
@@ -55,6 +55,6 @@ PluginTableHandler handlers[] = {
 
 DEFINE_PLUGIN_API_VERSION()
 DEFINE_PLUGIN_IDENTIFIER("ExampleDatafilePlugin")
-DEFINE_PLUGIN_VERSION("2.0.1")
+DEFINE_PLUGIN_VERSION("2.0.2")
 DEFINE_PLUGIN_INIT(DatafileItemInit)
 DEFINE_PLUGIN_TABLE_HANDLERS(handlers)
