@@ -18,7 +18,8 @@ inline void handleKeyEvent(const EInputKeyEvent* InputKeyEvent, int vKeyTarget, 
 		if (!toggleKey && InputKeyEvent->KeyState == EngineKeyStateType::EKS_PRESSED) {
 			toggleKey = true;
 			onPress();
-		} else if (toggleKey && InputKeyEvent->KeyState == EngineKeyStateType::EKS_RELEASED) {
+		}
+		else if (toggleKey && InputKeyEvent->KeyState == EngineKeyStateType::EKS_RELEASED) {
 			toggleKey = false;
 		}
 	}
@@ -44,7 +45,8 @@ inline void handleKeyEventWithModifiers(
 				toggleKey = true;
 				onPress();
 			}
-		} else if (toggleKey && InputKeyEvent->KeyState == EngineKeyStateType::EKS_RELEASED) {
+		}
+		else if (toggleKey && InputKeyEvent->KeyState == EngineKeyStateType::EKS_RELEASED) {
 			toggleKey = false;
 		}
 	}
@@ -68,14 +70,14 @@ bool __fastcall hkBUIWorld_ProcessEvent(uintptr_t* This, EInputKeyEvent* InputKe
 	if (InputKeyEvent->vfptr->Id(InputKeyEvent) == 2) {
 		handleKeyEventWithModifiers(InputKeyEvent, 0x4F, true, true, false, []() {
 			auto results = g_DatafilePluginManager.ReloadAll();
-			constexpr auto message = LR"(Datafile Plugins Reloaded)";
-			auto* gameWorld = BNSClient_GetWorld();
-			BSMessaging::DisplaySystemChatMessage(gameWorld, &oAddInstantNotification, message, false);
+			constexpr auto message = LR"(Datafile plugins reloaded)";
+			std::wstring msg = message;
 			for (const auto& res : results) {
-				std::wstring ws = L"- " + StringToWString(res);
-				BSMessaging::DisplaySystemChatMessage(gameWorld, &oAddInstantNotification, ws.c_str(), false);
+				msg += L"<br />- " + StringToWString(res);
 			}
-		});
+			auto* gameWorld = BNSClient_GetWorld();
+			BSMessaging::DisplaySystemChatMessage(gameWorld, &oAddInstantNotification, msg.c_str(), false);
+			});
 	}
 	return oBUIWorld_ProcessEvent(This, InputKeyEvent);
 }

@@ -2,6 +2,8 @@
 #include "DatafileService.h"
 #include <cstddef>
 #include <type_traits>
+#include <cwchar>
+#include <unordered_map>
 
 #ifdef _WIN32
 #define PLUGIN_EXPORT extern "C" __declspec(dllexport)
@@ -9,7 +11,7 @@
 #define PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
-constexpr int PLUGIN_API_VERSION = 3;
+constexpr int PLUGIN_API_VERSION = 4;
 
 struct PluginReturnData {
 	DrEl* drEl = nullptr;
@@ -17,11 +19,8 @@ struct PluginReturnData {
 
 using DisplaySystemChatMessageFunc = void(*)(const wchar_t*, bool);
 
-struct PluginParamsBase {
+struct PluginExecuteParams {
 	Data::DataManager* dataManager = nullptr;
-};
-
-struct PluginExecuteParams : PluginParamsBase {
 	DrMultiKeyTable* table = nullptr;
 	unsigned __int64 key = 0;
 	DrEl* (__fastcall* oFind)(DrMultiKeyTable* thisptr, unsigned __int64 key) = nullptr;
@@ -29,7 +28,7 @@ struct PluginExecuteParams : PluginParamsBase {
 	DisplaySystemChatMessageFunc displaySystemChatMessage = nullptr;
 };
 
-struct PluginInitParams : PluginParamsBase {
+struct PluginInitParams {
 	// Future expansion
 };
 
@@ -37,6 +36,41 @@ struct PluginTableHandler {
 	const wchar_t* tableName = nullptr;
 	PluginReturnData(*executeFunc)(PluginExecuteParams*) = nullptr;
 };
+
+struct VersionInfo {
+	unsigned int key;
+	short major;
+	short minor;
+};
+
+using GetVersionInfoFunc = VersionInfo(*)(short);
+
+inline bool IsVersionCompatible(PluginExecuteParams* params, GetVersionInfoFunc getVersionInfo) {
+	static std::unordered_map<short, bool> versionCompatibleMap;
+	auto it = versionCompatibleMap.find(params->table->_tabledef->type);
+	if (it == versionCompatibleMap.end()) {
+		VersionInfo compiledVersion = getVersionInfo(params->table->_tabledef->type);
+		const auto& gameTableVersion = params->table->_tabledef->version;
+		versionCompatibleMap[params->table->_tabledef->type] =
+			(compiledVersion.key == gameTableVersion.ver);
+
+		//Print message only the first time the version check fails
+		if (compiledVersion.key != gameTableVersion.ver) {
+			std::wstring msg = params->table->_tabledef->name;
+			msg += L" table version mismatch:";
+			msg += L"<br /> Compiled: " + std::to_wstring(compiledVersion.major) + L"." + std::to_wstring(compiledVersion.minor);
+			msg += L"<br /> Game: " + std::to_wstring(gameTableVersion.major_ver) + L"." + std::to_wstring(gameTableVersion.minor_ver);
+			msg += L"<br /> Plugin functionality for this table will be disabled.";
+			params->displaySystemChatMessage(msg.c_str(), false);
+		}
+
+		it = versionCompatibleMap.find(params->table->_tabledef->type);
+	}
+	if (it != versionCompatibleMap.end()) {
+		return it->second;
+	}
+	return false;
+}
 
 // Function pointer types
 using PluginExecuteFunc = PluginReturnData(*)(PluginExecuteParams*);
@@ -63,3 +97,13 @@ using PluginTableHandlersFunc = const PluginTableHandler* (*)();
 #define DEFINE_PLUGIN_TABLE_HANDLERS(handlersArray) \
 	PLUGIN_EXPORT std::size_t PluginTableHandlerCount() { return std::size(handlersArray); } \
 	PLUGIN_EXPORT const PluginTableHandler* PluginTableHandlers() { return handlersArray; }
+
+#define PLUGIN_DETOUR_GUARD(params, getTableVersionFunc) \
+    auto __get_version_info = [](short type) -> VersionInfo { \
+        auto v = getTableVersionFunc(type); \
+        return VersionInfo{v.Version.VersionKey, v.Version.MajorVersion, v.Version.MinorVersion}; \
+    }; \
+    if (!(params) || !(params)->table || !(params)->dataManager || \
+        !IsVersionCompatible(params, __get_version_info)) { \
+        return {}; \
+    }

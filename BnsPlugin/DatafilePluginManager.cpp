@@ -139,7 +139,8 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 	PluginHandle* handle = nullptr;
 	if (auto it = _plugins.find(plugin_path); it != _plugins.end()) {
 		handle = it->second.get();
-	} else {
+	}
+	else {
 		handle = (_plugins[plugin_path] = std::make_unique<PluginHandle>()).get();
 	}
 
@@ -190,7 +191,7 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 	auto tableHandlersFunc = reinterpret_cast<PluginTableHandlersFunc>(GetProcAddress(dll, "PluginTableHandlers"));
 	auto tableHandlerCountFunc = reinterpret_cast<PluginTableHandlerCountFunc>(GetProcAddress(dll, "PluginTableHandlerCount"));
 
-	if (!(init && identifier && api_version && plugin_version && tableHandlersFunc && tableHandlerCountFunc)) {
+	if (!(identifier && api_version && plugin_version && tableHandlersFunc && tableHandlerCountFunc)) {
 		std::cerr << "Error: Missing required exports in " << plugin_path << "\n";
 		FreeLibrary(dll);
 		std::error_code ec; fs::remove(shadow_path, ec);
@@ -226,6 +227,11 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 	handle->last_write_time = current_write_time;
 	handle->shadow_path = shadow_path;
 	std::cout << "Loaded: " << identifier() << " (API v" << reported_api_version << ", Plugin v" << plugin_version() << ")\n";
+	// Call init if available
+	if (handle->init) {
+		PluginInitParams params{};
+		handle->init(&params);
+	}
 	result = std::string(handle->identifier()) + " v" + handle->version();
 	return result;
 }
@@ -256,11 +262,13 @@ DrEl* DatafilePluginManager::ExecuteAll(PluginExecuteParams* params) {
 			try {
 				auto pluginReturnValue = handler->executeFunc(params);
 				if (pluginReturnValue.drEl) return pluginReturnValue.drEl;
-			} catch (const std::exception& ex) {
+			}
+			catch (const std::exception& ex) {
 #ifdef _DEBUG
 				std::cerr << "Exception in datafile plugin " << (pluginTuple.first->identifier ? pluginTuple.first->identifier() : "unknown") << ": " << ex.what() << '\n';
 #endif
-			} catch (...) {
+			}
+			catch (...) {
 #ifdef _DEBUG
 				std::cerr << "Unknown exception in datafile plugin " << (pluginTuple.first->identifier ? pluginTuple.first->identifier() : "unknown") << '\n';
 #endif
