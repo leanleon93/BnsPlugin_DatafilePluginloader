@@ -14,6 +14,15 @@
 #include <atomic>
 #include <mutex>
 
+#include <d3d11.h>
+#include <dxgi.h>
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx11.h"
+
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "dxgi.lib")
+
 // Global state
 static gsl::span<uint8_t> data;
 static pe::module* module = nullptr;
@@ -28,7 +37,7 @@ static void ScannerSetup() {
 	const auto sections = module->segments();
 	const auto it = std::ranges::find_if(sections, [](const IMAGE_SECTION_HEADER& x) {
 		return x.Characteristics & IMAGE_SCN_CNT_CODE;
-	});
+		});
 	if (it != sections.end()) {
 		data = it->as_bytes();
 	}
@@ -128,10 +137,12 @@ static __int64* HookDataManager(const char* pattern, int offset2) {
 	return nullptr;
 }
 
+
 static __int64* InitDetours() {
 #ifdef _DEBUG
 	std::cout << "InitDetours" << std::endl;
 #endif
+
 	DetourTransactionBegin();
 	DetourUpdateThread(NtCurrentThread());
 
@@ -148,6 +159,140 @@ static __int64* InitDetours() {
 	return dataManagerPtr;
 }
 
+typedef HRESULT(__stdcall* Present_t)(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags);
+Present_t oPresent = nullptr;
+
+ID3D11Device* g_pd3dDevice = nullptr;
+ID3D11DeviceContext* g_pd3dDeviceContext = nullptr;
+ID3D11RenderTargetView* g_mainRenderTargetView = nullptr;
+HWND                    g_hWnd = nullptr;
+bool                    g_Initialized = false;
+
+
+
+void InitImGui(IDXGISwapChain* pSwapChain);
+void CleanupRenderTarget();
+void CreateRenderTarget(IDXGISwapChain* pSwapChain);
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+HWND GetSwapChainHWND(IDXGISwapChain* pSwapChain) {
+	DXGI_SWAP_CHAIN_DESC sd;
+	pSwapChain->GetDesc(&sd);
+	return sd.OutputWindow;
+}
+
+
+HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
+{
+	if (!g_Initialized)
+	{
+		InitImGui(pSwapChain);
+		g_Initialized = true;
+	}
+
+	// Start ImGui frame
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	// Draw the ImGui demo window
+	ImGui::ShowDemoWindow();
+
+	// Rendering
+	ImGui::Render();
+	g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+	return oPresent(pSwapChain, SyncInterval, Flags);
+}
+
+WNDPROC oWndProc;
+LRESULT CALLBACK hkWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+		return true;
+	return CallWindowProc(oWndProc, hWnd, msg, wParam, lParam);
+}
+
+
+void InitImGui(IDXGISwapChain* pSwapChain)
+{
+	if (FAILED(pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&g_pd3dDevice)))
+		return;
+	g_pd3dDevice->GetImmediateContext(&g_pd3dDeviceContext);
+	CreateRenderTarget(pSwapChain);
+
+	g_hWnd = GetSwapChainHWND(pSwapChain);
+
+	ImGui::CreateContext();
+	ImGui_ImplWin32_Init(g_hWnd);
+	ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
+
+	// Hook WndProc (for input)
+	oWndProc = (WNDPROC)SetWindowLongPtr(g_hWnd, GWLP_WNDPROC, (LONG_PTR)hkWndProc);
+}
+
+void CreateRenderTarget(IDXGISwapChain* pSwapChain)
+{
+	ID3D11Texture2D* pBackBuffer = nullptr;
+	pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
+	if (pBackBuffer)
+	{
+		g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
+		pBackBuffer->Release();
+	}
+}
+void CleanupRenderTarget()
+{
+	if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = nullptr; }
+}
+
+void* GetPresentAddr()
+{
+	DXGI_SWAP_CHAIN_DESC sd = {};
+	sd.BufferCount = 1;
+	sd.BufferDesc.Width = 2;
+	sd.BufferDesc.Height = 2;
+	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	sd.OutputWindow = GetForegroundWindow();
+	sd.SampleDesc.Count = 1;
+	sd.Windowed = TRUE;
+	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+
+	ID3D11Device* pDevice = nullptr;
+	ID3D11DeviceContext* pContext = nullptr;
+	IDXGISwapChain* pSwapChain = nullptr;
+	HRESULT hr = D3D11CreateDeviceAndSwapChain(
+		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, nullptr, 0,
+		D3D11_SDK_VERSION, &sd, &pSwapChain, &pDevice, nullptr, &pContext);
+	if (FAILED(hr)) return nullptr;
+
+	void** vtable = *(void***)(pSwapChain);
+	void* addr = vtable[8];
+
+	if (pSwapChain) pSwapChain->Release();
+	if (pDevice) pDevice->Release();
+	if (pContext) pContext->Release();
+	return addr;
+}
+
+
+DWORD WINAPI ImguiThread() {
+	void* presentAddr = GetPresentAddr();
+	if (!presentAddr)
+		return 1;
+
+	oPresent = (Present_t)presentAddr;
+
+	DetourTransactionBegin();
+	DetourUpdateThread(GetCurrentThread());
+	DetourAttach(&(PVOID&)oPresent, hkPresent);
+	DetourTransactionCommit();
+	return 0;
+}
+
+
 static void InitDatafileService() {
 	constexpr auto sleep_duration = std::chrono::milliseconds(1000);
 	while (true) {
@@ -156,6 +301,8 @@ static void InitDatafileService() {
 		}
 		std::this_thread::sleep_for(sleep_duration);
 	}
+	//after datafile service is initialized, we can setup imgui
+	ImguiThread();
 }
 
 static void BnsPlugin_Init() {
