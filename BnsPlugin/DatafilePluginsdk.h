@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <cwchar>
 #include <unordered_map>
+#include "imgui_plugin_api.h"
 
 #ifdef _WIN32
 #define PLUGIN_EXPORT extern "C" __declspec(dllexport)
@@ -30,7 +31,9 @@ struct PluginExecuteParams {
 };
 
 struct PluginInitParams {
-
+	RegisterImGuiPanelFn registerImGuiPanel = nullptr;
+	UnregisterImGuiPanelFn unregisterImGuiPanel = nullptr;
+	PluginImGuiAPI* imgui;
 };
 
 struct PluginTableHandler {
@@ -79,6 +82,7 @@ using PluginIdentifierFunc = const char* (*)();
 using PluginApiVersionFunc = int (*)();
 using PluginVersionFunc = const char* (*)();
 using PluginInitFunc = void (*)(PluginInitParams*);
+using PluginUnregisterFunc = void (*)();
 using PluginTableHandlerCountFunc = std::size_t(*)();
 using PluginTableHandlersFunc = const PluginTableHandler* (*)();
 
@@ -94,6 +98,9 @@ using PluginTableHandlersFunc = const PluginTableHandler* (*)();
 
 #define DEFINE_PLUGIN_INIT(fn) \
 	PLUGIN_EXPORT void PluginInit(PluginInitParams* params) { fn(params); }
+
+#define DEFINE_PLUGIN_UNREGISTER(fn) \
+	PLUGIN_EXPORT void PluginUnregister() { fn(); }
 
 #define DEFINE_PLUGIN_TABLE_HANDLERS(handlersArray) \
 	PLUGIN_EXPORT std::size_t PluginTableHandlerCount() { return std::size(handlersArray); } \

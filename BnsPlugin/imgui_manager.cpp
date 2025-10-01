@@ -2,6 +2,10 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
+#include <map>
+#include <mutex>
+#include <string>
+
 
 static ID3D11Device* g_pd3dDevice = nullptr;
 static ID3D11DeviceContext* g_pd3dDeviceContext = nullptr;
@@ -9,6 +13,29 @@ static ID3D11RenderTargetView* g_mainRenderTargetView = nullptr;
 static HWND g_hWnd = nullptr;
 static bool g_Initialized = false;
 static WNDPROC oWndProc = nullptr;
+
+struct PanelEntry {
+	std::string name;
+	ImGuiPanelRenderFn fn;
+	void* userData;
+};
+static std::map<int, PanelEntry> g_Panels;
+static int g_NextPanelId = 1;
+static std::mutex g_PanelsMutex;
+
+extern "C" __declspec(dllexport)
+int __stdcall RegisterImGuiPanel(const ImGuiPanelDesc* desc) {
+	std::lock_guard<std::mutex> lock(g_PanelsMutex);
+	int id = g_NextPanelId++;
+	g_Panels[id] = { desc->name, desc->renderFn, desc->userData };
+	return id;
+}
+
+extern "C" __declspec(dllexport)
+void __stdcall UnregisterImGuiPanel(int handle) {
+	std::lock_guard<std::mutex> lock(g_PanelsMutex);
+	g_Panels.erase(handle);
+}
 
 void ImGuiManager_Init(HWND hwnd, ID3D11Device* device, ID3D11DeviceContext* context)
 {
@@ -55,8 +82,14 @@ void ImGuiManager_NewFrame()
 
 void ImGuiManager_Render()
 {
-	// Show the ImGui demo window
-	ImGui::ShowDemoWindow();
+	std::lock_guard<std::mutex> lock(g_PanelsMutex);
+	ImGui::Begin("Plugin Panels");
+	for (auto& [id, entry] : g_Panels) {
+		if (ImGui::CollapsingHeader(entry.name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+			entry.fn(entry.userData); // Call the plugin's panel function
+		}
+	}
+	ImGui::End();
 
 	ImGui::Render();
 	g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);

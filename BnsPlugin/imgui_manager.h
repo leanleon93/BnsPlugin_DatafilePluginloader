@@ -2,6 +2,7 @@
 #include <d3d11.h>
 #include <dxgi.h>
 #include <Windows.h>
+#include "imgui_plugin_api.h"
 
 // Call once after device/window is ready
 void ImGuiManager_Init(HWND hwnd, ID3D11Device* device, ID3D11DeviceContext* context);
@@ -17,3 +18,6 @@ LRESULT CALLBACK ImGuiManager_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 typedef HRESULT(__stdcall* Present_t)(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags);
 // For use in your present hook
 void ImGuiManager_OnPresent(IDXGISwapChain* pSwapChain, Present_t oPresent, IDXGISwapChain* swap, UINT sync, UINT flags);
+
+extern "C" __declspec(dllexport) int __stdcall RegisterImGuiPanel(const ImGuiPanelDesc* desc);
+extern "C" __declspec(dllexport) void __stdcall UnregisterImGuiPanel(int handle);

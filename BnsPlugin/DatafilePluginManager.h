@@ -15,6 +15,7 @@ struct PluginHandle {
 	PluginIdentifierFunc identifier = nullptr;
 	PluginVersionFunc version = nullptr;
 	PluginInitFunc init = nullptr;
+	PluginUnregisterFunc unregister = nullptr;
 	std::filesystem::file_time_type last_write_time{};
 	std::string shadow_path; // copied DLL path (shadow copy)
 	bool load_failed = false;
@@ -45,4 +46,4 @@ private:
 	[[nodiscard]] static std::string get_temp_shadow_dir(const std::string& app_name);
 };
 
-extern DatafilePluginManager g_DatafilePluginManager;
+extern std::unique_ptr<DatafilePluginManager> g_DatafilePluginManager;

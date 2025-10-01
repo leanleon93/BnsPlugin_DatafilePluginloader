@@ -2,7 +2,6 @@
 #include <EU/text/AAA_text_RecordBase.h>
 #include <EU/BnsTableNames.h>
 
-
 static PluginReturnData __fastcall DatafileItemDetour(PluginExecuteParams* params) {
 	PLUGIN_DETOUR_GUARD(params, BnsTables::EU::TableNames::GetTableVersion);
 	// Example: Return a specific item for a known key
@@ -42,27 +41,109 @@ static PluginReturnData __fastcall DatafileTextDetour(PluginExecuteParams* param
 }
 
 static int g_panelHandle = 0;
-static UnregisterImGuiPanelFn g_UnregisterPanel = nullptr;
-static int counter = 0;
+static RegisterImGuiPanelFn g_register = nullptr;
+static UnregisterImGuiPanelFn g_unregister = nullptr;
+static PluginImGuiAPI* g_imgui = nullptr;
 
-// Dummy ImGui functions for IntelliSense
-namespace ImGui {
-	inline void Text(const char*, ...) {}
-	inline bool Button(const char*, ...) { return false; }
-	inline void SameLine() {}
-	// Add any other functions you want IntelliSense for.
-}
+static void MyTestPanel(void* userData) {
+	static int counter = 0;
+	static char buffer[256] = { 0 };
+	static float f = 0.0f;
+	static bool check = false;
+	static int radio = 0;
+	static int combo_idx = 0;
+	static const char* combo_items[] = { "Apple", "Banana", "Cherry" };
+	static bool collapsing_open = true;
+	static bool window_open = true;
 
-static void RenderPanel(void*) {
-	ImGui::Text("Hello from ExamplePlugin!");
-	if (ImGui::Button("Click Me")) ++counter;
-	ImGui::Text("Button pressed %d times", counter);
+	g_imgui->Text("Hello from example plugin panel!");
+	g_imgui->Separator();
+
+	if (g_imgui->Button("Click Me")) ++counter;
+	g_imgui->SameLine(0.0f, -1.0f);
+	if (g_imgui->SmallButton("Small")) --counter;
+	g_imgui->Text("Button pressed %d times", counter);
+
+	g_imgui->ArrowButton("Left", 0);
+	g_imgui->SameLine(0.0f, -1.0f);
+	g_imgui->ArrowButton("Right", 1);
+	g_imgui->SameLine(0.0f, -1.0f);
+	g_imgui->ArrowButton("Up", 2);
+	g_imgui->SameLine(0.0f, -1.0f);
+	g_imgui->ArrowButton("Down", 3);
+
+	g_imgui->Checkbox("Check me", &check);
+	if (g_imgui->RadioButton("Radio A", radio == 0)) {
+		radio = 0;
+	}
+	g_imgui->SameLine(0.0f, -1.0f);
+	if (g_imgui->RadioButton("Radio B", radio == 1)) {
+		radio = 1;
+	}
+	g_imgui->SameLine(0.0f, -1.0f);
+	g_imgui->RadioButtonInt("Radio C", &radio, 2);
+
+	g_imgui->InputText("Edit Me", buffer, 256);
+	g_imgui->InputInt("Integer", &counter);
+	g_imgui->SliderInt("Slider", &counter, 0, 200);
+	g_imgui->InputFloat("Float", &f);
+	g_imgui->SliderFloat("Float Slider", &f, 0.0f, 1.0f);
+
+	g_imgui->Combo("Combo", &combo_idx, combo_items, 3, 3);
+
+	if (g_imgui->CollapsingHeader("Collapsing Header")) {
+		g_imgui->Text("Inside collapsing header");
+	}
+
+	if (g_imgui->TreeNode("Tree Node")) {
+		g_imgui->Text("Inside tree node");
+		g_imgui->TreePop();
+	}
+
+	g_imgui->BeginChild("ChildWindow");
+	g_imgui->Text("Inside child window");
+	g_imgui->EndChild();
+
+	/*if (g_imgui->Button("Open Popup")) {
+		g_imgui->OpenPopup("MyPopup");
+	}
+	if (g_imgui->BeginPopup("MyPopup")) {
+		g_imgui->Text("Popup content!");
+		if (g_imgui->Button("Close")) g_imgui->EndPopup();
+		g_imgui->EndPopup();
+	}*/
+
+	/*g_imgui->BeginTooltip();
+	g_imgui->Text("Tooltip text!");
+	g_imgui->EndTooltip();*/
+
+	//g_imgui->SetTooltip("Quick tooltip!");
+
+	/*if (g_imgui->Begin("Extra Window", &window_open)) {
+		g_imgui->Text("Inside another window");
+		g_imgui->End();
+	}*/
+
+	/*g_imgui->Spacing();
+	g_imgui->Dummy(10.0f, 10.0f);*/
 }
 
 static void __fastcall Init(PluginInitParams* params) {
-	g_UnregisterPanel = params->unregisterImGuiPanel;
-	ImGuiPanelDesc desc = { "Plugin Panel", RenderPanel, nullptr };
-	g_panelHandle = params->registerImGuiPanel(&desc);
+	if (params && params->registerImGuiPanel && params->unregisterImGuiPanel && params->imgui)
+	{
+		g_imgui = params->imgui;
+		g_register = params->registerImGuiPanel;
+		g_unregister = params->unregisterImGuiPanel;
+		ImGuiPanelDesc desc = { "ExampleDatafilePlugin Panel", MyTestPanel, nullptr };
+		g_panelHandle = g_register(&desc);
+	}
+}
+
+static void __fastcall Unregister() {
+	if (g_unregister && g_panelHandle != 0) {
+		g_unregister(g_panelHandle);
+		g_panelHandle = 0;
+	}
 }
 
 PluginTableHandler handlers[] = {
@@ -72,6 +153,7 @@ PluginTableHandler handlers[] = {
 
 DEFINE_PLUGIN_API_VERSION()
 DEFINE_PLUGIN_IDENTIFIER("ExampleDatafilePlugin")
-DEFINE_PLUGIN_VERSION("3.0.0")
+DEFINE_PLUGIN_VERSION("3.0.1")
 DEFINE_PLUGIN_INIT(Init)
+DEFINE_PLUGIN_UNREGISTER(Unregister)
 DEFINE_PLUGIN_TABLE_HANDLERS(handlers)

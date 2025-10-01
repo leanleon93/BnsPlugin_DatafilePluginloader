@@ -69,7 +69,7 @@ bool __fastcall hkBUIWorld_ProcessEvent(uintptr_t* This, EInputKeyEvent* InputKe
 	if (!InputKeyEvent) return false;
 	if (InputKeyEvent->vfptr->Id(InputKeyEvent) == 2) {
 		handleKeyEventWithModifiers(InputKeyEvent, 0x4F, true, true, false, []() {
-			auto results = g_DatafilePluginManager.ReloadAll();
+			auto results = g_DatafilePluginManager->ReloadAll();
 			constexpr auto message = LR"(Datafile plugins reloaded)";
 			std::wstring msg = message;
 			for (const auto& res : results) {
@@ -91,7 +91,7 @@ static void DisplaySystemChatMessage(const wchar_t* message, bool playSound) {
 DrEl* (__fastcall* oFind_b8)(DrMultiKeyTable* thisptr, unsigned __int64 key);
 DrEl* __fastcall hkFind_b8(DrMultiKeyTable* thisptr, unsigned __int64 key) {
 	PluginExecuteParams params{ g_DatafileService.GetDataManager(), thisptr, key, oFind_b8, false, &DisplaySystemChatMessage };
-	if (auto* pluginResult = g_DatafilePluginManager.ExecuteAll(&params)) {
+	if (auto* pluginResult = g_DatafilePluginManager->ExecuteAll(&params)) {
 		return pluginResult;
 	}
 	return oFind_b8(thisptr, key);
@@ -100,7 +100,7 @@ DrEl* __fastcall hkFind_b8(DrMultiKeyTable* thisptr, unsigned __int64 key) {
 DrEl* (__fastcall* oFind_b8AutoId)(DrMultiKeyTable* thisptr, unsigned __int64 autokey);
 DrEl* __fastcall hkFind_b8AutoId(DrMultiKeyTable* thisptr, unsigned __int64 autokey) {
 	PluginExecuteParams params{ g_DatafileService.GetDataManager(), thisptr, autokey, oFind_b8AutoId, true, &DisplaySystemChatMessage };
-	if (auto* pluginResult = g_DatafilePluginManager.ExecuteAll(&params)) {
+	if (auto* pluginResult = g_DatafilePluginManager->ExecuteAll(&params)) {
 		return pluginResult;
 	}
 	return oFind_b8AutoId(thisptr, autokey);

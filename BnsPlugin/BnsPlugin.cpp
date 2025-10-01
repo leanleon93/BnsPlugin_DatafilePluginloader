@@ -13,7 +13,7 @@
 #include <chrono>
 #include <atomic>
 #include <mutex>
-
+#include "DatafilePluginManager.h"
 #include "imgui_manager.h"
 
 #pragma comment(lib, "d3d11.lib")
@@ -195,7 +195,7 @@ static void* GetPresentAddr()
 }
 
 
-static DWORD WINAPI ImguiThread() {
+static DWORD WINAPI InitImgui() {
 	void* presentAddr = GetPresentAddr();
 	if (!presentAddr)
 		return 1;
@@ -218,8 +218,6 @@ static void InitDatafileService() {
 		}
 		std::this_thread::sleep_for(sleep_duration);
 	}
-	//after datafile service is initialized, we can setup imgui
-	ImguiThread();
 }
 
 static void BnsPlugin_Init() {
@@ -231,6 +229,8 @@ static void BnsPlugin_Init() {
 		std::jthread datafileServiceInitThread(InitDatafileService);
 		datafileServiceInitThread.detach();
 	}
+	InitImgui();
+	g_DatafilePluginManager = std::make_unique<DatafilePluginManager>("datafilePlugins");
 }
 
 void WINAPI BnsPlugin_Main() {
