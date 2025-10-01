@@ -11,7 +11,8 @@
 #define PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
-constexpr int PLUGIN_API_VERSION = 4;
+constexpr int PLUGIN_API_VERSION = 5;
+
 
 struct PluginReturnData {
 	DrEl* drEl = nullptr;
@@ -29,7 +30,7 @@ struct PluginExecuteParams {
 };
 
 struct PluginInitParams {
-	// Future expansion
+
 };
 
 struct PluginTableHandler {

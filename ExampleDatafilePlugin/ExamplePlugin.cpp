@@ -2,6 +2,7 @@
 #include <EU/text/AAA_text_RecordBase.h>
 #include <EU/BnsTableNames.h>
 
+
 static PluginReturnData __fastcall DatafileItemDetour(PluginExecuteParams* params) {
 	PLUGIN_DETOUR_GUARD(params, BnsTables::EU::TableNames::GetTableVersion);
 	// Example: Return a specific item for a known key
@@ -40,6 +41,30 @@ static PluginReturnData __fastcall DatafileTextDetour(PluginExecuteParams* param
 	return {};
 }
 
+static int g_panelHandle = 0;
+static UnregisterImGuiPanelFn g_UnregisterPanel = nullptr;
+static int counter = 0;
+
+// Dummy ImGui functions for IntelliSense
+namespace ImGui {
+	inline void Text(const char*, ...) {}
+	inline bool Button(const char*, ...) { return false; }
+	inline void SameLine() {}
+	// Add any other functions you want IntelliSense for.
+}
+
+static void RenderPanel(void*) {
+	ImGui::Text("Hello from ExamplePlugin!");
+	if (ImGui::Button("Click Me")) ++counter;
+	ImGui::Text("Button pressed %d times", counter);
+}
+
+static void __fastcall Init(PluginInitParams* params) {
+	g_UnregisterPanel = params->unregisterImGuiPanel;
+	ImGuiPanelDesc desc = { "Plugin Panel", RenderPanel, nullptr };
+	g_panelHandle = params->registerImGuiPanel(&desc);
+}
+
 PluginTableHandler handlers[] = {
 	{ L"item", &DatafileItemDetour },
 	{ L"text", &DatafileTextDetour }
@@ -47,5 +72,6 @@ PluginTableHandler handlers[] = {
 
 DEFINE_PLUGIN_API_VERSION()
 DEFINE_PLUGIN_IDENTIFIER("ExampleDatafilePlugin")
-DEFINE_PLUGIN_VERSION("2.0.3")
+DEFINE_PLUGIN_VERSION("3.0.0")
+DEFINE_PLUGIN_INIT(Init)
 DEFINE_PLUGIN_TABLE_HANDLERS(handlers)

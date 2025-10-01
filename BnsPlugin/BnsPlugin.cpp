@@ -14,11 +14,7 @@
 #include <atomic>
 #include <mutex>
 
-#include <d3d11.h>
-#include <dxgi.h>
-#include "imgui.h"
-#include "imgui_impl_win32.h"
-#include "imgui_impl_dx11.h"
+#include "imgui_manager.h"
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -159,95 +155,16 @@ static __int64* InitDetours() {
 	return dataManagerPtr;
 }
 
-typedef HRESULT(__stdcall* Present_t)(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags);
 Present_t oPresent = nullptr;
 
-ID3D11Device* g_pd3dDevice = nullptr;
-ID3D11DeviceContext* g_pd3dDeviceContext = nullptr;
-ID3D11RenderTargetView* g_mainRenderTargetView = nullptr;
-HWND                    g_hWnd = nullptr;
-bool                    g_Initialized = false;
 
-
-
-void InitImGui(IDXGISwapChain* pSwapChain);
-void CleanupRenderTarget();
-void CreateRenderTarget(IDXGISwapChain* pSwapChain);
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-HWND GetSwapChainHWND(IDXGISwapChain* pSwapChain) {
-	DXGI_SWAP_CHAIN_DESC sd;
-	pSwapChain->GetDesc(&sd);
-	return sd.OutputWindow;
-}
-
-
-HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
+static HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
 {
-	if (!g_Initialized)
-	{
-		InitImGui(pSwapChain);
-		g_Initialized = true;
-	}
-
-	// Start ImGui frame
-	ImGui_ImplDX11_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-
-	// Draw the ImGui demo window
-	ImGui::ShowDemoWindow();
-
-	// Rendering
-	ImGui::Render();
-	g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
-	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-
-	return oPresent(pSwapChain, SyncInterval, Flags);
+	ImGuiManager_OnPresent(pSwapChain, oPresent, pSwapChain, SyncInterval, Flags);
+	return 0;
 }
 
-WNDPROC oWndProc;
-LRESULT CALLBACK hkWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-		return true;
-	return CallWindowProc(oWndProc, hWnd, msg, wParam, lParam);
-}
-
-
-void InitImGui(IDXGISwapChain* pSwapChain)
-{
-	if (FAILED(pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&g_pd3dDevice)))
-		return;
-	g_pd3dDevice->GetImmediateContext(&g_pd3dDeviceContext);
-	CreateRenderTarget(pSwapChain);
-
-	g_hWnd = GetSwapChainHWND(pSwapChain);
-
-	ImGui::CreateContext();
-	ImGui_ImplWin32_Init(g_hWnd);
-	ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
-
-	// Hook WndProc (for input)
-	oWndProc = (WNDPROC)SetWindowLongPtr(g_hWnd, GWLP_WNDPROC, (LONG_PTR)hkWndProc);
-}
-
-void CreateRenderTarget(IDXGISwapChain* pSwapChain)
-{
-	ID3D11Texture2D* pBackBuffer = nullptr;
-	pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-	if (pBackBuffer)
-	{
-		g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
-		pBackBuffer->Release();
-	}
-}
-void CleanupRenderTarget()
-{
-	if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = nullptr; }
-}
-
-void* GetPresentAddr()
+static void* GetPresentAddr()
 {
 	DXGI_SWAP_CHAIN_DESC sd = {};
 	sd.BufferCount = 1;
@@ -278,7 +195,7 @@ void* GetPresentAddr()
 }
 
 
-DWORD WINAPI ImguiThread() {
+static DWORD WINAPI ImguiThread() {
 	void* presentAddr = GetPresentAddr();
 	if (!presentAddr)
 		return 1;
