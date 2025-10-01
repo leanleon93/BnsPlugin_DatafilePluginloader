@@ -79,9 +79,12 @@ void ImGuiManager_NewFrame()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 }
+static bool g_ImGuiPanelVisible = false;
 
 void ImGuiManager_Render()
 {
+	if (!g_ImGuiPanelVisible)
+		return;
 	std::lock_guard<std::mutex> lock(g_PanelsMutex);
 	ImGui::Begin("Plugin Panels");
 	for (auto& [id, entry] : g_Panels) {
@@ -100,8 +103,25 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 LRESULT CALLBACK ImGuiManager_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-		return true;
+	// Toggle panel with INSERT key (change VK_INSERT to your preferred key)
+	if (msg == WM_KEYDOWN && wParam == VK_INSERT)
+	{
+		g_ImGuiPanelVisible = !g_ImGuiPanelVisible;
+		return 0; // Eat the key
+	}
+
+	// If ImGui panel is visible, let ImGui handle input and block game input if it wants to capture
+	if (g_ImGuiPanelVisible)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
+		if (io.WantCaptureKeyboard && (msg == WM_KEYDOWN || msg == WM_KEYUP || msg == WM_CHAR))
+			return 0; // Block game input
+		if (io.WantCaptureMouse && (msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST))
+			return 0; // Block game mouse input
+	}
+
+	// Call original WndProc for all other cases
 	return CallWindowProc(oWndProc, hWnd, msg, wParam, lParam);
 }
 
