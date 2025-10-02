@@ -30,6 +30,7 @@ public:
 	void UnloadPlugins();
 
 	[[nodiscard]] std::vector<std::string> ReloadAll();
+	std::vector<std::string> GetPluginStateText();
 private:
 	std::string _plugins_folder; // source folder for plugins
 	const std::string _shadow_dir_path; // temp shadow dir where we load from
@@ -44,6 +45,7 @@ private:
 	[[nodiscard]] std::string CopyToShadow(std::string_view plugin_path) const;
 	void ensure_shadow_dir() const;
 	[[nodiscard]] static std::string get_temp_shadow_dir(const std::string& app_name);
+	int _panelHandle = 0;
 };
 
 extern std::unique_ptr<DatafilePluginManager> g_DatafilePluginManager;

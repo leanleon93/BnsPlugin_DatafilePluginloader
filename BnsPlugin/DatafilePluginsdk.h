@@ -12,7 +12,7 @@
 #define PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
-constexpr int PLUGIN_API_VERSION = 5;
+constexpr int PLUGIN_API_VERSION = 7;
 
 
 struct PluginReturnData {
@@ -96,11 +96,9 @@ using PluginTableHandlersFunc = const PluginTableHandler* (*)();
 #define DEFINE_PLUGIN_VERSION(ver) \
     PLUGIN_EXPORT const char* PluginVersion() { return ver; }
 
-#define DEFINE_PLUGIN_INIT(fn) \
-	PLUGIN_EXPORT void PluginInit(PluginInitParams* params) { fn(params); }
-
-#define DEFINE_PLUGIN_UNREGISTER(fn) \
-	PLUGIN_EXPORT void PluginUnregister() { fn(); }
+#define DEFINE_PLUGIN_INIT(initFn, unregisterFn) \
+	PLUGIN_EXPORT void PluginInit(PluginInitParams* params) { initFn(params); } \
+	PLUGIN_EXPORT void PluginUnregister() { unregisterFn(); }
 
 #define DEFINE_PLUGIN_TABLE_HANDLERS(handlersArray) \
 	PLUGIN_EXPORT std::size_t PluginTableHandlerCount() { return std::size(handlersArray); } \

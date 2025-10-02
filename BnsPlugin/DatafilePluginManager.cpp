@@ -15,130 +15,7 @@ static constexpr const char* PLUGINLOADER_IDENTIFIER = "LeanDatafilePluginLoader
 
 std::unique_ptr<DatafilePluginManager> g_DatafilePluginManager;
 
-// Platform-specific hidden attribute helper
-#ifdef _WIN32
-#include <windows.h>
-#include <unordered_set>
-static void set_hidden_attribute(const std::string& path) {
-	SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_DIRECTORY);
-}
-#else
-static void set_hidden_attribute(const std::string&) {}
-#endif
-
-void DatafilePluginManager::ensure_shadow_dir() const {
-	std::error_code ec;
-	fs::create_directories(_shadow_dir_path, ec);
-	if (!ec) set_hidden_attribute(_shadow_dir_path);
-}
-
-std::string DatafilePluginManager::get_temp_shadow_dir(const std::string& app_name) {
-	auto tmp = fs::temp_directory_path();
-	// use unique_path for strong uniqueness instead of rand()
-	fs::path p = tmp / fs::path(app_name + "_shadow");
-	return p.string();
-}
-
-std::string DatafilePluginManager::CopyToShadow(std::string_view plugin_path) const {
-	ensure_shadow_dir();
-	fs::path src(plugin_path);
-	std::string filename = src.stem().string();
-	// unique shadow file name (filename + pid + timestamp + random)
-	auto now = std::chrono::steady_clock::now().time_since_epoch().count();
-	std::random_device rd;
-	std::mt19937_64 gen(rd());
-	uint64_t r = gen();
-	fs::path shadow = fs::path(_shadow_dir_path) / fs::path(filename + "_" + std::to_string(now) + "_" + std::to_string(r) + src.extension().string());
-	std::error_code ec;
-	fs::copy_file(src, shadow, fs::copy_options::overwrite_existing, ec);
-	if (ec) {
-		std::cerr << "Failed to copy plugin to shadow: " << src << " -> " << shadow << " : " << ec.message() << '\n';
-		return {};
-	}
-	return shadow.string();
-}
-
-DatafilePluginManager::DatafilePluginManager(const std::string& folder)
-	: _plugins_folder(folder), _shadow_dir_path(get_temp_shadow_dir(PLUGINLOADER_IDENTIFIER)) {
-	if (!fs::exists(_plugins_folder) || !fs::is_directory(_plugins_folder)) {
-		throw std::runtime_error("Plugins folder does not exist or is not a directory.");
-	}
-	// clear shadow directory if it exists and is not empty
-	if (fs::exists(_shadow_dir_path) && fs::is_directory(_shadow_dir_path)) {
-		for (const auto& entry : fs::directory_iterator(_shadow_dir_path)) {
-			std::error_code ec; fs::remove(entry.path(), ec);
-		}
-	}
-	ReloadAll();
-}
-
-DatafilePluginManager::~DatafilePluginManager() { UnloadPlugins(); }
-
-void DatafilePluginManager::UnloadPlugins() {
-	for (auto& kv : _plugins) {
-		PluginHandle* handle = kv.second.get();
-		if (handle && handle->dll) {
-			if (handle->unregister) {
-				try {
-					handle->unregister();
-				}
-				catch (...) {
-					// ignore
-				}
-			}
-			FreeLibrary(handle->dll);
-		}
-		if (handle && !handle->shadow_path.empty()) {
-			std::error_code ec; fs::remove(handle->shadow_path, ec);
-		}
-	}
-	_table_compare_cache.clear();
-	_table_plugin_cache.clear();
-	_plugins.clear();
-
-	std::error_code ec;
-	if (fs::exists(_shadow_dir_path)) {
-		for (const auto& entry : fs::directory_iterator(_shadow_dir_path, ec)) {
-			std::error_code ec2; fs::remove(entry.path(), ec2);
-		}
-		fs::remove(_shadow_dir_path, ec);
-	}
-}
-
-std::vector<std::string> DatafilePluginManager::ReloadAll() {
-	std::vector<std::string> results;
-	// Remove all plugin handles so they will be forcibly loaded next time
-	UnloadPlugins();
-
-	for (const auto& entry : fs::directory_iterator(_plugins_folder)) {
-		if (entry.path().extension() == ".dll") {
-			if (auto res = ReloadPluginIfChanged(entry.path().string()); !res.empty()) {
-				results.push_back(std::move(res));
-			}
-		}
-	}
-	return results;
-}
-
-bool DatafilePluginManager::PluginForTableIsRegistered(const wchar_t* table_name) const {
-	if (!table_name) return false;
-	std::wstring key(table_name);
-	if (auto it = _table_compare_cache.find(key); it != _table_compare_cache.end()) {
-		return it->second;
-	}
-	bool found = false;
-	for (const auto& kv : _plugins) {
-		const auto* handle = kv.second.get();
-		if (!handle || !handle->dll) continue;
-		for (const auto* handler : handle->tableHandlers) {
-			if (handler && handler->tableName && wcscmp(handler->tableName, table_name) == 0) { found = true; break; }
-		}
-		if (found) break;
-	}
-	_table_compare_cache.emplace(std::move(key), found);
-	return found;
-}
-
+#pragma region ImguiWrappers
 static void ImGui_TextColored_Wrapper(float r, float g, float b, float a, const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
@@ -153,7 +30,7 @@ static bool ImGui_ArrowButton_Wrapper(const char* str_id, int dir) {
 	return ImGui::ArrowButton(str_id, static_cast<ImGuiDir>(dir));
 }
 
-static bool ImGui_Button_LabelOnly(const char* label) {
+static bool ImGui_Button_Wrapper(const char* label) {
 	return ImGui::Button(label);
 }
 
@@ -207,7 +84,7 @@ PluginImGuiAPI g_imguiApi = {
 	&ImGui_TextColored_Wrapper,
 	&ImGui::Separator,
 	&ImGui::SameLine,
-	&ImGui_Button_LabelOnly,
+	&ImGui_Button_Wrapper,
 	&ImGui::SmallButton,
 	&ImGui_ArrowButton_Wrapper,
 	&ImGui::Checkbox,
@@ -233,8 +110,225 @@ PluginImGuiAPI g_imguiApi = {
 	&ImGui_Begin_Wrapper,
 	&ImGui::End,
 	&ImGui::Spacing,
-	&ImGui_Dummy_Wrapper
+	&ImGui_Dummy_Wrapper,
+	&ImGui::Indent,
+	&ImGui::Unindent,
+	&ImGui::PushID,
+	&ImGui::PushID,
+	&ImGui::PopID
 };
+#pragma endregion
+
+// Platform-specific hidden attribute helper
+#ifdef _WIN32
+#include <windows.h>
+#include <unordered_set>
+#include "BSFunctions.h"
+#include <codecvt>
+static void set_hidden_attribute(const std::string& path) {
+	SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_DIRECTORY);
+}
+#else
+static void set_hidden_attribute(const std::string&) {}
+#endif
+
+void DatafilePluginManager::ensure_shadow_dir() const {
+	std::error_code ec;
+	fs::create_directories(_shadow_dir_path, ec);
+	if (!ec) set_hidden_attribute(_shadow_dir_path);
+}
+
+std::string DatafilePluginManager::get_temp_shadow_dir(const std::string& app_name) {
+	auto tmp = fs::temp_directory_path();
+	// use unique_path for strong uniqueness instead of rand()
+	fs::path p = tmp / fs::path(app_name + "_shadow");
+	return p.string();
+}
+
+std::string DatafilePluginManager::CopyToShadow(std::string_view plugin_path) const {
+	ensure_shadow_dir();
+	fs::path src(plugin_path);
+	std::string filename = src.stem().string();
+	// unique shadow file name (filename + pid + timestamp + random)
+	auto now = std::chrono::steady_clock::now().time_since_epoch().count();
+	std::random_device rd;
+	std::mt19937_64 gen(rd());
+	uint64_t r = gen();
+	fs::path shadow = fs::path(_shadow_dir_path) / fs::path(filename + "_" + std::to_string(now) + "_" + std::to_string(r) + src.extension().string());
+	std::error_code ec;
+	fs::copy_file(src, shadow, fs::copy_options::overwrite_existing, ec);
+	if (ec) {
+		std::cerr << "Failed to copy plugin to shadow: " << src << " -> " << shadow << " : " << ec.message() << '\n';
+		return {};
+	}
+	return shadow.string();
+}
+extern bool do_reload;
+
+static void GlobalConfigUiPanel(void* userData) {
+	ImGui::Spacing();
+	ImGui::Dummy(ImVec2(0.0f, 5.0f));
+
+	auto stateTexts = g_DatafilePluginManager->GetPluginStateText();
+	for (const auto& line : stateTexts) {
+		if (line.find("[Failed]") == 0) {
+			ImGui_TextColored_Wrapper(1.0f, 0.2f, 0.2f, 1.0f, "%s", line.c_str()); // Red
+		}
+		else if (line.find("[Loaded]") == 0) {
+			ImGui_TextColored_Wrapper(0.2f, 1.0f, 0.2f, 1.0f, "%s", line.c_str()); // Green
+		}
+		else {
+			ImGui::Text("%s", line.c_str());
+		}
+	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	if (ImGui::Button("Reload all plugins")) {
+		do_reload = true;
+	}
+
+	ImGui::Spacing();
+	ImGui::TextDisabled("Use this button to reload plugins without restarting the game.");
+	ImGui::Spacing();
+	ImGui::Dummy(ImVec2(0.0f, 5.0f));
+}
+
+DatafilePluginManager::DatafilePluginManager(const std::string& folder)
+	: _plugins_folder(folder), _shadow_dir_path(get_temp_shadow_dir(PLUGINLOADER_IDENTIFIER)) {
+	if (!fs::exists(_plugins_folder) || !fs::is_directory(_plugins_folder)) {
+		throw std::runtime_error("Plugins folder does not exist or is not a directory.");
+	}
+	// clear shadow directory if it exists and is not empty
+	if (fs::exists(_shadow_dir_path) && fs::is_directory(_shadow_dir_path)) {
+		for (const auto& entry : fs::directory_iterator(_shadow_dir_path)) {
+			std::error_code ec; fs::remove(entry.path(), ec);
+		}
+	}
+	ImGuiPanelDesc desc = { "Plugin states", GlobalConfigUiPanel, nullptr };
+	_panelHandle = RegisterImGuiPanel(&desc);
+	ReloadAll();
+}
+
+DatafilePluginManager::~DatafilePluginManager() {
+	UnloadPlugins();
+	if (_panelHandle) {
+		UnregisterImGuiPanel(_panelHandle);
+		_panelHandle = 0;
+	}
+}
+
+void DatafilePluginManager::UnloadPlugins() {
+	for (auto& kv : _plugins) {
+		PluginHandle* handle = kv.second.get();
+		if (handle && handle->dll) {
+			if (handle->unregister) {
+				try {
+					handle->unregister();
+				}
+				catch (...) {
+					// ignore
+				}
+			}
+			FreeLibrary(handle->dll);
+		}
+		if (handle && !handle->shadow_path.empty()) {
+			std::error_code ec; fs::remove(handle->shadow_path, ec);
+		}
+	}
+	_table_compare_cache.clear();
+	_table_plugin_cache.clear();
+	_plugins.clear();
+
+	std::error_code ec;
+	if (fs::exists(_shadow_dir_path)) {
+		for (const auto& entry : fs::directory_iterator(_shadow_dir_path, ec)) {
+			std::error_code ec2; fs::remove(entry.path(), ec2);
+		}
+		fs::remove(_shadow_dir_path, ec);
+	}
+}
+
+std::vector<std::string> DatafilePluginManager::ReloadAll() {
+	std::vector<std::string> results;
+	// Remove all plugin handles so they will be forcibly loaded next time
+	UnloadPlugins();
+
+	for (const auto& entry : fs::directory_iterator(_plugins_folder)) {
+		if (entry.path().extension() == ".dll") {
+			if (auto res = ReloadPluginIfChanged(entry.path().string()); !res.empty()) {
+				results.push_back(std::move(res));
+			}
+		}
+	}
+	return results;
+}
+
+std::vector<std::string> DatafilePluginManager::GetPluginStateText()
+{
+	std::vector<std::string> results;
+	for (const auto& kv : _plugins) {
+		const auto* handle = kv.second.get();
+		if (!handle) continue;
+		std::string line;
+		if (handle->load_failed) {
+			line = "[Failed] ";
+			if (handle->identifier) {
+				line += handle->identifier();
+			}
+			else {
+				line += kv.first + " (unknown plugin)";
+			}
+			line += " - " + handle->fail_reason;
+		}
+		else if (handle->dll && handle->identifier && handle->version) {
+			line = std::string("[Loaded] ") + handle->identifier() + " v" + handle->version();
+			if (handle->tableHandlers.empty()) {
+				line += " (no handlers registered)";
+			}
+			else {
+				line += " (handlers: ";
+				for (size_t i = 0; i < handle->tableHandlers.size(); ++i) {
+					const auto* th = handle->tableHandlers[i];
+					if (th && th->tableName) {
+						line += std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(th->tableName);
+					}
+					else {
+						line += "(unknown)";
+					}
+					if (i + 1 < handle->tableHandlers.size()) line += ", ";
+				}
+				line += ")";
+			}
+		}
+		else {
+			line = "[Unknown state] " + kv.first;
+		}
+		results.push_back(std::move(line));
+	}
+	return results;
+}
+
+bool DatafilePluginManager::PluginForTableIsRegistered(const wchar_t* table_name) const {
+	if (!table_name) return false;
+	std::wstring key(table_name);
+	if (auto it = _table_compare_cache.find(key); it != _table_compare_cache.end()) {
+		return it->second;
+	}
+	bool found = false;
+	for (const auto& kv : _plugins) {
+		const auto* handle = kv.second.get();
+		if (!handle || !handle->dll) continue;
+		for (const auto* handler : handle->tableHandlers) {
+			if (handler && handler->tableName && wcscmp(handler->tableName, table_name) == 0) { found = true; break; }
+		}
+		if (found) break;
+	}
+	_table_compare_cache.emplace(std::move(key), found);
+	return found;
+}
 
 std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin_path_sv) {
 	std::string plugin_path(plugin_path_sv);
@@ -323,6 +417,7 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 	int reported_api_version = api_version();
 	if (reported_api_version != PLUGIN_API_VERSION) {
 		std::cerr << "Skipped: " << identifier() << " (incompatible API version " << reported_api_version << ", required " << PLUGIN_API_VERSION << ")\n";
+		result = "Incompatible API version: " + std::string(identifier()) + " v" + plugin_version();
 		FreeLibrary(dll);
 		std::error_code ec; fs::remove(shadow_path, ec);
 		handle->last_write_time = current_write_time;
@@ -348,7 +443,7 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 	handle->shadow_path = shadow_path;
 	std::cout << "Loaded: " << identifier() << " (API v" << reported_api_version << ", Plugin v" << plugin_version() << ")\n";
 	// Call init if available
-	if (handle->init) {
+	if (handle->init && handle->unregister) {
 		PluginInitParams params = {};
 		params.registerImGuiPanel = &RegisterImGuiPanel;
 		params.unregisterImGuiPanel = &UnregisterImGuiPanel;

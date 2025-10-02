@@ -13,6 +13,7 @@ struct ImGuiPanelDesc {
 typedef int(__stdcall* RegisterImGuiPanelFn)(const ImGuiPanelDesc* desc);
 typedef void(__stdcall* UnregisterImGuiPanelFn)(int handle);
 
+//define controls and widgets you want to expose to plugins so the plugins dont have to link against imgui directly
 struct PluginImGuiAPI {
 	// Basic text and separators
 	void (*Text)(const char* fmt, ...);
@@ -66,4 +67,9 @@ struct PluginImGuiAPI {
 	// Misc
 	void (*Spacing)();
 	void (*Dummy)(float w, float h);
+	void (*Indent)(float indent_w);
+	void (*Unindent)(float indent_w);
+	void (*PushId)(const char* str_id);
+	void (*PushIdInt)(int int_id);
+	void (*PopId)();
 };

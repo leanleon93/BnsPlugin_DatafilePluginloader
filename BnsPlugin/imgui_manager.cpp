@@ -5,7 +5,7 @@
 #include <map>
 #include <mutex>
 #include <string>
-
+#include "DatafilePluginManager.h"
 
 static ID3D11Device* g_pd3dDevice = nullptr;
 static ID3D11DeviceContext* g_pd3dDeviceContext = nullptr;
@@ -80,13 +80,20 @@ void ImGuiManager_NewFrame()
 	ImGui::NewFrame();
 }
 static bool g_ImGuiPanelVisible = false;
+bool do_reload = false;
 
 void ImGuiManager_Render()
 {
+	if (do_reload) {
+		auto results = g_DatafilePluginManager->ReloadAll();
+		do_reload = false;
+	}
+
 	if (!g_ImGuiPanelVisible)
 		return;
+
 	std::lock_guard<std::mutex> lock(g_PanelsMutex);
-	ImGui::Begin("Plugin Panels");
+	ImGui::Begin("Datfile Plugins", &g_ImGuiPanelVisible);
 	for (auto& [id, entry] : g_Panels) {
 		if (ImGui::CollapsingHeader(entry.name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
 			entry.fn(entry.userData); // Call the plugin's panel function

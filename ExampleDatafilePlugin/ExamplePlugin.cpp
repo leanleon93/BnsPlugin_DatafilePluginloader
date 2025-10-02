@@ -45,6 +45,9 @@ static RegisterImGuiPanelFn g_register = nullptr;
 static UnregisterImGuiPanelFn g_unregister = nullptr;
 static PluginImGuiAPI* g_imgui = nullptr;
 
+/* Example ImGui panel with various controls and widgets
+ * KEEP IN MIND STATIC STATE IS NOT PRESERVED BETWEEN DLL RELOADS
+ * STORE REAL CONFIG IN EXTERNAL FILE IF NEEDED */
 static void MyTestPanel(void* userData) {
 	static int counter = 0;
 	static char buffer[256] = { 0 };
@@ -153,7 +156,6 @@ PluginTableHandler handlers[] = {
 
 DEFINE_PLUGIN_API_VERSION()
 DEFINE_PLUGIN_IDENTIFIER("ExampleDatafilePlugin")
-DEFINE_PLUGIN_VERSION("3.0.1")
-DEFINE_PLUGIN_INIT(Init)
-DEFINE_PLUGIN_UNREGISTER(Unregister)
+DEFINE_PLUGIN_VERSION("3.1.0")
+DEFINE_PLUGIN_INIT(Init, Unregister)
 DEFINE_PLUGIN_TABLE_HANDLERS(handlers)
