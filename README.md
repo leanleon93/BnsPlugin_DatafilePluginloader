@@ -10,13 +10,17 @@ A plugin for BnS NEO that enables dynamic loading and hot-reloading of "datafile
 
 ---
 
+## Ingame Gui Example
+
+<img src="./ingame_gui.png" alt="DatafilePluginloader Ingame GUI" width="800"/>
+
 ## Load Order Diagram
 
 ```mermaid
 graph TD
     D["BnS NEO Game"] --> C["pilao pluginloader<br />(winmm.dll)"]
-    C --> B["DatafilePluginloader<br />(this project)"]
-    B --> A["datafile plugins<br />(hot reloadable)"]
+    C --> B["DatafilePluginloader<br />(this project, provides datamanager and ImGui setup)"]
+    B --> A["datafile plugins<br />(hot reloadable, can edit game data and extend gui)"]
 ```
 
 ---
