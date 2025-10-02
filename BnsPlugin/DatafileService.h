@@ -2,18 +2,21 @@
 #include "Data.h"
 #include <array>
 #include <string>
+#include <atomic>
+#include <memory>
 
 class DatafileService {
 public:
-	bool Setup();
-	bool IsSetupComplete() const;
-	bool IsCriticalFail() const;
+	DatafileService(__int64 const* ptr) : dataManagerPtr(ptr) {}
+	bool CheckIfDatamanagerReady();
+	bool IsSetupComplete() const { return setupComplete.load(); }
+	void SetSetupComplete(bool value) { setupComplete.store(value); }
 	Data::DataManager* GetDataManager();
 	void SetDataManagerPtr(__int64 const* ptr);
 private:
 	__int64 const* dataManagerPtr;
-	bool SetupComplete;
-	bool CriticalFail;
+	const std::wstring tableName = L"item";
+	std::atomic<bool> setupComplete{ false };
 };
 
-extern DatafileService g_DatafileService;
+extern std::unique_ptr<DatafileService> g_DatafileService;

@@ -1,6 +1,15 @@
 #include "DatafilePluginsdk.h"
 #include <EU/text/AAA_text_RecordBase.h>
+#include <EU/item/AAA_item_RecordBase.h>
 #include <EU/BnsTableNames.h>
+
+static int g_panelHandle = 0;
+static RegisterImGuiPanelFn g_register = nullptr;
+static UnregisterImGuiPanelFn g_unregister = nullptr;
+static PluginImGuiAPI* g_imgui = nullptr;
+static std::wstring item100Alias = L"";
+static std::wstring itemSwapSourceName2 = L"";
+static std::wstring itemSwapTargetName2 = L"";
 
 static PluginReturnData __fastcall DatafileItemDetour(PluginExecuteParams* params) {
 	PLUGIN_DETOUR_GUARD(params, BnsTables::EU::TableNames::GetTableVersion);
@@ -10,6 +19,26 @@ static PluginReturnData __fastcall DatafileItemDetour(PluginExecuteParams* param
 
 	if (key == 4295877296) {
 		DrEl* result = params->oFind(params->table, 4295917336);
+		if (result != nullptr && itemSwapTargetName2.empty()) {
+			auto itemRecord = (BnsTables::EU::item_Record*)result;
+			auto textTable = DataHelper::GetTable(params->dataManager, L"text");
+			if (textTable != nullptr) {
+				auto textRecord = (BnsTables::EU::text_Record*)params->oFind(static_cast<DrMultiKeyTable*>(textTable), itemRecord->name2.Key);
+				if (textRecord != nullptr) {
+					itemSwapTargetName2 = textRecord->text.ReadableText;
+				}
+			}
+		}
+		if (itemSwapSourceName2.empty()) {
+			auto originalItemRecord = (BnsTables::EU::item_Record*)params->oFind(params->table, key);
+			auto textTable = DataHelper::GetTable(params->dataManager, L"text");
+			if (textTable != nullptr) {
+				auto textRecord = (BnsTables::EU::text_Record*)params->oFind(static_cast<DrMultiKeyTable*>(textTable), originalItemRecord->name2.Key);
+				if (textRecord != nullptr) {
+					itemSwapSourceName2 = textRecord->text.ReadableText;
+				}
+			}
+		}
 		//params->displaySystemChatMessage(L"ExampleItemPlugin: Redirected item key 4295902840 to 4294967396", false);
 		return { result };
 	}
@@ -40,11 +69,6 @@ static PluginReturnData __fastcall DatafileTextDetour(PluginExecuteParams* param
 	return {};
 }
 
-static int g_panelHandle = 0;
-static RegisterImGuiPanelFn g_register = nullptr;
-static UnregisterImGuiPanelFn g_unregister = nullptr;
-static PluginImGuiAPI* g_imgui = nullptr;
-
 /* Example ImGui panel with various controls and widgets
  * KEEP IN MIND STATIC STATE IS NOT PRESERVED BETWEEN DLL RELOADS
  * STORE REAL CONFIG IN EXTERNAL FILE IF NEEDED */
@@ -60,6 +84,29 @@ static void MyTestPanel(void* userData) {
 	static bool window_open = true;
 
 	g_imgui->Text("Hello from example plugin panel!");
+	g_imgui->Separator();
+
+	if (!item100Alias.empty()) {
+		g_imgui->Text("Item 100 alias: %ls", item100Alias.c_str());
+	}
+	else {
+		g_imgui->Text("Item 100 alias not loaded.");
+	}
+	g_imgui->Separator();
+
+	if (!itemSwapSourceName2.empty()) {
+		g_imgui->Text("Item swap source name: %ls", itemSwapSourceName2.c_str());
+	}
+	else {
+		g_imgui->Text("Item swap source name not loaded.");
+	}
+
+	if (!itemSwapTargetName2.empty()) {
+		g_imgui->Text("Item swap target name: %ls", itemSwapTargetName2.c_str());
+	}
+	else {
+		g_imgui->Text("Item swap target name not loaded.");
+	}
 	g_imgui->Separator();
 
 	if (g_imgui->Button("Click Me")) ++counter;
@@ -139,6 +186,17 @@ static void __fastcall Init(PluginInitParams* params) {
 		g_unregister = params->unregisterImGuiPanel;
 		ImGuiPanelDesc desc = { "ExampleDatafilePlugin Panel", MyTestPanel, nullptr };
 		g_panelHandle = g_register(&desc);
+	}
+	if (params && params->dataManager) {
+		auto itemTable = DataHelper::GetTable(params->dataManager, L"item");
+		if (itemTable) {
+			auto mkTable = static_cast<DrMultiKeyTable*>(itemTable);
+			auto item100 = params->oFind(mkTable, 4294967396);
+			if (item100) {
+				auto itemRecord = (BnsTables::EU::item_Record*)item100;
+				item100Alias = std::wstring(itemRecord->alias ? itemRecord->alias : L"(no alias)");
+			}
+		}
 	}
 }
 

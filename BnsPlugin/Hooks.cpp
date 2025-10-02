@@ -5,6 +5,7 @@
 #include <string_view>
 #include "DatafileService.h"
 #include "DatafilePluginManager.h"
+#include "Data.h"
 
 extern _AddInstantNotification oAddInstantNotification;
 
@@ -19,7 +20,10 @@ static void DisplaySystemChatMessage(const wchar_t* message, bool playSound) {
 // Use stack allocation for PluginExecuteParams to avoid heap allocation in hooks
 DrEl* (__fastcall* oFind_b8)(DrMultiKeyTable* thisptr, unsigned __int64 key);
 DrEl* __fastcall hkFind_b8(DrMultiKeyTable* thisptr, unsigned __int64 key) {
-	PluginExecuteParams params{ g_DatafileService.GetDataManager(), thisptr, key, oFind_b8, false, &DisplaySystemChatMessage };
+	if (!g_DatafilePluginManager) {
+		return oFind_b8(thisptr, key);
+	}
+	PluginExecuteParams params{ g_DatafileService->GetDataManager(), oFind_b8, thisptr, key, &DisplaySystemChatMessage };
 	if (auto* pluginResult = g_DatafilePluginManager->ExecuteAll(&params)) {
 		return pluginResult;
 	}
@@ -28,7 +32,10 @@ DrEl* __fastcall hkFind_b8(DrMultiKeyTable* thisptr, unsigned __int64 key) {
 
 DrEl* (__fastcall* oFind_b8AutoId)(DrMultiKeyTable* thisptr, unsigned __int64 autokey);
 DrEl* __fastcall hkFind_b8AutoId(DrMultiKeyTable* thisptr, unsigned __int64 autokey) {
-	PluginExecuteParams params{ g_DatafileService.GetDataManager(), thisptr, autokey, oFind_b8AutoId, true, &DisplaySystemChatMessage };
+	if (!g_DatafilePluginManager) {
+		return oFind_b8AutoId(thisptr, autokey);
+	}
+	PluginExecuteParams params{ g_DatafileService->GetDataManager(), oFind_b8AutoId, thisptr, autokey, &DisplaySystemChatMessage };
 	if (auto* pluginResult = g_DatafilePluginManager->ExecuteAll(&params)) {
 		return pluginResult;
 	}

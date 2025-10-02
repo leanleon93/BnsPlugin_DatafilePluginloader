@@ -15,6 +15,7 @@
 #include <mutex>
 #include "DatafilePluginManager.h"
 #include "imgui_manager.h"
+#include <functional>
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -157,8 +158,16 @@ static __int64* InitDetours() {
 Present_t oPresent = nullptr;
 
 
+std::atomic<bool> g_runMainThreadInit{ false };
+std::function<void()> g_mainThreadInitCallback;
+
 static HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
 {
+	// Main-thread "tick"
+	if (g_runMainThreadInit && g_mainThreadInitCallback) {
+		g_mainThreadInitCallback();
+		g_runMainThreadInit = false; // Only run once
+	}
 	ImGuiManager_OnPresent(pSwapChain, oPresent, pSwapChain, SyncInterval, Flags);
 	return 0;
 }
@@ -208,11 +217,14 @@ static DWORD WINAPI InitImgui() {
 	return 0;
 }
 
-
 static void InitDatafileService() {
 	constexpr auto sleep_duration = std::chrono::milliseconds(1000);
 	while (true) {
-		if (g_DatafileService.Setup() || g_DatafileService.IsCriticalFail()) {
+		if (g_DatafileService->CheckIfDatamanagerReady()) {
+			// Notify main thread
+			if (g_mainThreadInitCallback) {
+				g_runMainThreadInit = true;
+			}
 			break;
 		}
 		std::this_thread::sleep_for(sleep_duration);
@@ -223,13 +235,15 @@ static void BnsPlugin_Init() {
 	ScannerSetup();
 	InitMessaging();
 	const auto dataManagerPtr = InitDetours();
-	g_DatafileService.SetDataManagerPtr(dataManagerPtr);
+	g_DatafileService = std::make_unique<DatafileService>(dataManagerPtr);
 	if (dataManagerPtr != nullptr) {
+		g_mainThreadInitCallback = []() {
+			g_DatafilePluginManager = std::make_unique<DatafilePluginManager>("datafilePlugins");
+			};
 		std::jthread datafileServiceInitThread(InitDatafileService);
 		datafileServiceInitThread.detach();
 	}
 	InitImgui();
-	g_DatafilePluginManager = std::make_unique<DatafilePluginManager>("datafilePlugins");
 }
 
 void WINAPI BnsPlugin_Main() {

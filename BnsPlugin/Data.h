@@ -1,6 +1,7 @@
 #pragma once
 #include "DrEl.h"
 #include <map>
+#include <iostream>
 
 struct DataChunk
 {
@@ -61,13 +62,13 @@ struct DrLoaderDef;
 struct DrDataTable;
 struct /*VFT*/ DrDataTable_vtbl
 {
-	char padding[0xB0];
-	DrEl* (__fastcall* Find)(DrDataTable* thisptr, const wchar_t*, const DrAliasMap*);
-	DrEl* (__fastcall* Find_b8)(DrDataTable* thisptr, unsigned __int64);
-	void(__fastcall* SetUseLowMemory)(DrDataTable* thisptr, bool);
-	DrInnerIter* (__fastcall* createInnerIter)(DrDataTable* thisptr, DrEl* const);
-	DrInnerIter* (__fastcall* createInnerIter_d0)(DrDataTable* thisptr);
-	void(__fastcall* removeInnerIter)(DrDataTable* thisptr, DrInnerIter*);
+	//char padding[0xB0];
+	//DrEl* (__fastcall* Find)(DrDataTable* thisptr, const wchar_t*, const DrAliasMap*);
+	//DrEl* (__fastcall* Find_b8)(DrDataTable* thisptr, unsigned __int64);
+	//void(__fastcall* SetUseLowMemory)(DrDataTable* thisptr, bool);
+	//DrInnerIter* (__fastcall* createInnerIter)(DrDataTable* thisptr, DrEl* const);
+	//DrInnerIter* (__fastcall* createInnerIter_d0)(DrDataTable* thisptr);
+	//void(__fastcall* removeInnerIter)(DrDataTable* thisptr, DrInnerIter*);
 };
 
 struct DrDataTable
@@ -126,6 +127,11 @@ struct __declspec(align(4)) DrTableDef {
 		unsigned __int32 ver;
 	};
 	Version version;
+	__declspec(align(8)) void* elDefs;
+	__int32 elCount;
+	unsigned __int64 maxId;
+	bool isAutoKey;
+	__declspec(align(4)) __int32 module;
 };
 #pragma pack(pop)
 
@@ -160,15 +166,107 @@ namespace Data {
 		__declspec(align(4)) DrLoaderDef _loaderDefs[494];
 #elif _BNSEU
 		__declspec(align(4)) DrLoaderDef _loaderDefs[494];
+#else
+		__declspec(align(4)) DrLoaderDef _loaderDefs[494];
 #endif
 	};
 }
 #pragma pack(pop)
+#include "Hooks.h"
 class DataHelper {
 public:
-	static DrDataTable* GetTable(const Data::DataManager* dataManager, int tableId);
-	static DrDataTable* GetTable(const Data::DataManager* dataManager, const wchar_t* tableName);
-	static __int16 GetTableId(const Data::DataManager* dataManager, const wchar_t* tableName);
-	static const DrTableDef* GetTableDef(const Data::DataManager* dataManager, const wchar_t* tableName);
-	static DrEl* GetRecord(const Data::DataManager* dataManager, int tableId, __int64 key);
+	static DrDataTable* GetTable(const Data::DataManager* dataManager, int tableId) {
+		auto index = tableId - 1;
+		if (dataManager == nullptr) {
+			return nullptr;
+		}
+		auto loaderDef = dataManager->_loaderDefs[index];
+		auto tableDef = loaderDef.tableDef;
+		auto tableName = tableDef->name;
+#ifdef _DEBUG
+		std::wcout << L"Table name: " << tableName << std::endl;
+#endif // _DEBUG
+		return dataManager->_loaderDefs[index].table;
+	}
+	static DrDataTable* GetTable(const Data::DataManager* dataManager, const wchar_t* tableName) {
+		if (dataManager == nullptr) {
+			return nullptr;
+		}
+		int arraySize = sizeof(dataManager->_loaderDefs) / sizeof(dataManager->_loaderDefs[0]);
+		for (int i = 0; i < arraySize; i++) {
+			auto loaderDef = dataManager->_loaderDefs[i];
+			auto tableDef = loaderDef.tableDef;
+			if (tableDef == nullptr) continue;
+			auto name = tableDef->name;
+			if (wcscmp(name, tableName) == 0) {
+				return dataManager->_loaderDefs[i].table;
+			}
+		}
+		return nullptr;
+	}
+	static __int16 GetTableId(const Data::DataManager* dataManager, const wchar_t* tableName) {
+		if (dataManager == nullptr) {
+			return 0;
+		}
+		int arraySize = sizeof(dataManager->_loaderDefs) / sizeof(dataManager->_loaderDefs[0]);
+		for (int i = 0; i < arraySize; i++) {
+			auto loaderDef = dataManager->_loaderDefs[i];
+			auto tableDef = loaderDef.tableDef;
+			if (tableDef == nullptr) continue;
+			auto name = tableDef->name;
+			if (wcscmp(name, tableName) == 0) {
+				return tableDef->type;
+			}
+		}
+		return 0;
+	}
+	static const DrTableDef* GetTableDef(const Data::DataManager* dataManager, const wchar_t* tableName) {
+		if (dataManager == nullptr) {
+			return nullptr;
+		}
+		int arraySize = sizeof(dataManager->_loaderDefs) / sizeof(dataManager->_loaderDefs[0]);
+		for (int i = 0; i < arraySize; i++) {
+			auto loaderDef = dataManager->_loaderDefs[i];
+			auto tableDef = loaderDef.tableDef;
+			if (tableDef == nullptr) continue;
+			auto name = tableDef->name;
+			if (wcscmp(name, tableName) == 0) {
+				return tableDef;
+			}
+		}
+		return nullptr;
+	}
+	static DrEl* GetRecord(const Data::DataManager* dataManager, int tableId, __int64 key) {
+		if (dataManager == nullptr) {
+			return nullptr;
+		}
+		auto table = GetTable(dataManager, tableId);
+		if (table == nullptr) {
+			return nullptr;
+		}
+		auto record = oFind_b8(static_cast<DrMultiKeyTable*>(table), key);
+		return record;
+	}
+	static DrEl* GetRecordAutoId(const Data::DataManager* dataManager, int tableId, __int64 autokey) {
+		if (dataManager == nullptr) {
+			return nullptr;
+		}
+		auto table = GetTable(dataManager, tableId);
+		if (table == nullptr) {
+			return nullptr;
+		}
+		auto record = oFind_b8AutoId(static_cast<DrMultiKeyTable*>(table), autokey);
+		return record;
+	}
+	static int GetRecordCount(const Data::DataManager* dataManager, int tableId) {
+		if (dataManager == nullptr) {
+			return 0;
+		}
+		auto table = GetTable(dataManager, tableId);
+		if (table == nullptr) {
+			return 0;
+		}
+		auto multiKeyTable = static_cast<DrMultiKeyTable*>(table);
+		return multiKeyTable->_elMap.elCount;
+	}
 };

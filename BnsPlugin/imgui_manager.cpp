@@ -84,7 +84,7 @@ bool do_reload = false;
 
 void ImGuiManager_Render()
 {
-	if (do_reload) {
+	if (do_reload && g_DatafilePluginManager) {
 		auto results = g_DatafilePluginManager->ReloadAll();
 		do_reload = false;
 	}

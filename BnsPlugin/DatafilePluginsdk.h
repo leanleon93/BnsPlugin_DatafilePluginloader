@@ -12,7 +12,7 @@
 #define PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
-constexpr int PLUGIN_API_VERSION = 7;
+constexpr int PLUGIN_API_VERSION = 8;
 
 
 struct PluginReturnData {
@@ -21,19 +21,22 @@ struct PluginReturnData {
 
 using DisplaySystemChatMessageFunc = void(*)(const wchar_t*, bool);
 
-struct PluginExecuteParams {
+struct PluginParamsBase {
 	Data::DataManager* dataManager = nullptr;
+	DrEl* (__fastcall* oFind)(DrMultiKeyTable* thisptr, unsigned __int64 key) = nullptr;
+};
+
+struct PluginExecuteParams : PluginParamsBase {
+
 	DrMultiKeyTable* table = nullptr;
 	unsigned __int64 key = 0;
-	DrEl* (__fastcall* oFind)(DrMultiKeyTable* thisptr, unsigned __int64 key) = nullptr;
-	bool isAutoKey = false;
 	DisplaySystemChatMessageFunc displaySystemChatMessage = nullptr;
 };
 
-struct PluginInitParams {
+struct PluginInitParams : PluginParamsBase {
 	RegisterImGuiPanelFn registerImGuiPanel = nullptr;
 	UnregisterImGuiPanelFn unregisterImGuiPanel = nullptr;
-	PluginImGuiAPI* imgui;
+	PluginImGuiAPI* imgui = nullptr;
 };
 
 struct PluginTableHandler {

@@ -1,6 +1,8 @@
 #pragma once
 #include "BSFunctions.h"
-#include "Data.h"
+
+struct DrMultiKeyTable;
+struct DrEl;
 
 extern DrEl* (__fastcall* oFind_b8)(DrMultiKeyTable* thisptr, unsigned __int64 key);
 DrEl* __fastcall hkFind_b8(DrMultiKeyTable* thisptr, unsigned __int64 key);

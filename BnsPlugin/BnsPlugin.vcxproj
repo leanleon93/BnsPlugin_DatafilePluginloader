@@ -247,7 +247,6 @@
   <ItemGroup>
     <ClCompile Include="BSFunctions.cpp" />
     <ClCompile Include="callbacks.cpp" />
-    <ClCompile Include="Data.cpp" />
     <ClCompile Include="DatafilePluginManager.cpp" />
     <ClCompile Include="DatafileService.cpp" />
     <ClCompile Include="deps\Detours\src\detours.cpp" />

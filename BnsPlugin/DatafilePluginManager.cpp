@@ -119,6 +119,15 @@ PluginImGuiAPI g_imguiApi = {
 };
 #pragma endregion
 
+static DrEl* oFind_b8Wrapper(DrMultiKeyTable* thisptr, unsigned __int64 key) {
+	if (thisptr->_tabledef->isAutoKey) {
+		return oFind_b8AutoId(thisptr, key);
+	}
+	else {
+		return oFind_b8(thisptr, key);
+	}
+}
+
 // Platform-specific hidden attribute helper
 #ifdef _WIN32
 #include <windows.h>
@@ -169,7 +178,7 @@ static void GlobalConfigUiPanel(void* userData) {
 	ImGui::Spacing();
 	ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
-	auto stateTexts = g_DatafilePluginManager->GetPluginStateText();
+	auto stateTexts = g_DatafilePluginManager ? g_DatafilePluginManager->GetPluginStateText() : std::vector<std::string>{ "Plugin manager not initialized." };
 	for (const auto& line : stateTexts) {
 		if (line.find("[Failed]") == 0) {
 			ImGui_TextColored_Wrapper(1.0f, 0.2f, 0.2f, 1.0f, "%s", line.c_str()); // Red
@@ -293,7 +302,17 @@ std::vector<std::string> DatafilePluginManager::GetPluginStateText()
 				for (size_t i = 0; i < handle->tableHandlers.size(); ++i) {
 					const auto* th = handle->tableHandlers[i];
 					if (th && th->tableName) {
-						line += std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(th->tableName);
+						if (th && th->tableName) {
+							int requiredSize = WideCharToMultiByte(CP_UTF8, 0, th->tableName, -1, nullptr, 0, nullptr, nullptr);
+							if (requiredSize > 0) {
+								std::string utf8Name(requiredSize - 1, '\0'); // exclude null terminator
+								WideCharToMultiByte(CP_UTF8, 0, th->tableName, -1, utf8Name.data(), requiredSize, nullptr, nullptr);
+								line += utf8Name;
+							}
+						}
+						else {
+							line += "(unknown)";
+						}
 					}
 					else {
 						line += "(unknown)";
@@ -445,6 +464,8 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 	// Call init if available
 	if (handle->init && handle->unregister) {
 		PluginInitParams params = {};
+		params.dataManager = g_DatafileService->GetDataManager();
+		params.oFind = &oFind_b8Wrapper;
 		params.registerImGuiPanel = &RegisterImGuiPanel;
 		params.unregisterImGuiPanel = &UnregisterImGuiPanel;
 		params.imgui = &g_imguiApi;
@@ -478,6 +499,7 @@ DrEl* DatafilePluginManager::ExecuteAll(PluginExecuteParams* params) {
 		const auto* handler = pluginTuple.second;
 		if (handler && handler->executeFunc) {
 			try {
+				params->oFind = oFind_b8Wrapper; //wrap instead of using specific find
 				auto pluginReturnValue = handler->executeFunc(params);
 				if (pluginReturnValue.drEl) return pluginReturnValue.drEl;
 			}

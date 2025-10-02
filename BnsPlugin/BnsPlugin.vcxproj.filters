@@ -51,9 +51,6 @@
     <ClCompile Include="DatafileService.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Data.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="DatafilePluginManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
