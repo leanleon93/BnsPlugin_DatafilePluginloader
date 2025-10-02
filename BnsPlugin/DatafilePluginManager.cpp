@@ -302,16 +302,11 @@ std::vector<std::string> DatafilePluginManager::GetPluginStateText()
 				for (size_t i = 0; i < handle->tableHandlers.size(); ++i) {
 					const auto* th = handle->tableHandlers[i];
 					if (th && th->tableName) {
-						if (th && th->tableName) {
-							int requiredSize = WideCharToMultiByte(CP_UTF8, 0, th->tableName, -1, nullptr, 0, nullptr, nullptr);
-							if (requiredSize > 0) {
-								std::string utf8Name(requiredSize - 1, '\0'); // exclude null terminator
-								WideCharToMultiByte(CP_UTF8, 0, th->tableName, -1, utf8Name.data(), requiredSize, nullptr, nullptr);
-								line += utf8Name;
-							}
-						}
-						else {
-							line += "(unknown)";
+						int requiredSize = WideCharToMultiByte(CP_UTF8, 0, th->tableName, -1, nullptr, 0, nullptr, nullptr);
+						if (requiredSize > 0) {
+							std::string utf8Name(requiredSize - 1, '\0'); // exclude null terminator
+							WideCharToMultiByte(CP_UTF8, 0, th->tableName, -1, utf8Name.data(), requiredSize, nullptr, nullptr);
+							line += utf8Name;
 						}
 					}
 					else {
