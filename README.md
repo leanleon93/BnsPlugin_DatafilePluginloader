@@ -1,10 +1,17 @@
 # BnsPlugin_DatafilePluginloader
 
-## This is a BnS NEO Plugin that acts as an additional plugin loader to allow loading and reloading datafile hook plugins at runtime.
+A plugin for BnS NEO that enables dynamic loading and hot-reloading of "datafile plugins" at runtime.
 
-To avoid confusion with other bns plugins I will call this new layer "datafile plugins" in this readme.
+---
 
-## Load order visualized
+## Overview
+
+**BnsPlugin_DatafilePluginloader** acts as an additional plugin loader for BnS NEO, allowing you to load, update, and reload lightweight datafile hook plugins without restarting the game. For clarity, this layer is referred to as "datafile plugins" throughout this readme.
+
+---
+
+## Load Order Diagram
+
 ```mermaid
 graph TD
     D["BnS NEO Game"] --> C["pilao pluginloader<br />(winmm.dll)"]
@@ -12,17 +19,48 @@ graph TD
     B --> A["datafile plugins<br />(hot reloadable)"]
 ```
 
-The datafile pluginloader is a normal bns plugin (DLL) that hooks into the game using the existing pilao pluginloader (winmm.dll).
-## What it does
-It allows extremely lightweight datafile plugins to hook directly into the games "find data" process (when the game grabs data from a data table), allowing for easy reading and modification of game data.  
-In combination with my BnsPluginTables this can be used to modify game data on the fly.  
-Datafile plugins can be removed, updated and reloaded at runtime without restarting the game for quick testing.  
-Press `Alt+Shift+O` ingame to reload all datafile plugins.
-## Usage
-- Create a folder named `datafilePlugins` in the same directory as `BNSR.exe`. (next to the other `plugins` folder)
-- Place your datafile hook plugins (DLLs) in this folder.
+---
 
-You can find a very lightweight example in the `ExampleDatafilePlugin` project.  
-Or a slightly bigger real world example in `ArtifactDatafilePlugin` project.
-## Thoughts
-I just thought the idea of a hot-reloadable datafile pluginloader as an additional layer was interesting and wanted to share it.
+## Features
+
+- **Hot-reloadable plugins:** Add, update, or remove datafile plugins (DLLs) at runtime.
+- **Direct data hooks:** Intercept the game's "find data" process for real-time data reading and modification.
+- **ImGui integration:** Easily add custom configuration UIs for your plugins.
+- **No restart required:** Reload all plugins instantly from the in-game UI.
+
+---
+
+## How It Works
+
+- The DatafilePluginloader is a standard BnS plugin (DLL) that hooks into the game via the existing pilao pluginloader (`winmm.dll`).
+- Datafile plugins can hook into the game's data table access, enabling on-the-fly data manipulation.
+- The loader provides an ImGui-based UI for plugin configuration and management.
+
+---
+
+## Usage
+
+1. **Create the plugin folder:**
+   - In the same directory as `BNSR.exe`, create a folder named `datafilePlugins` (next to the existing `plugins` folder).
+
+2. **Add your plugins:**
+   - Place your datafile hook plugin DLLs into the `datafilePlugins` folder.
+
+3. **In-game controls:**
+   - Press `INSERT` to open the settings UI.
+   - Click `Reload all plugins` to refresh plugins without restarting the game.
+
+---
+
+## Examples
+
+- **Lightweight GUI Example:** See the `ExampleDatafilePlugin` project.
+- **Data Editing Example:** See the `ArtifactDatafilePlugin` project.
+
+---
+
+## Notes
+
+This project was created to explore the idea of a hot-reloadable datafile pluginloader with integrated GUI support. It is shared in the hope that others find it useful or inspiring.
+
+---
