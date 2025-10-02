@@ -258,15 +258,4 @@ public:
 		auto record = oFind_b8AutoId(static_cast<DrMultiKeyTable*>(table), autokey);
 		return record;
 	}
-	static int GetRecordCount(const Data::DataManager* dataManager, int tableId) {
-		if (dataManager == nullptr) {
-			return 0;
-		}
-		auto table = GetTable(dataManager, tableId);
-		if (table == nullptr) {
-			return 0;
-		}
-		auto multiKeyTable = static_cast<DrMultiKeyTable*>(table);
-		return multiKeyTable->_elMap.elCount;
-	}
 };

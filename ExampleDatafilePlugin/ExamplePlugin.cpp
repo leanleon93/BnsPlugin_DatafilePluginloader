@@ -21,22 +21,16 @@ static PluginReturnData __fastcall DatafileItemDetour(PluginExecuteParams* param
 		DrEl* result = params->oFind(params->table, 4295917336);
 		if (result != nullptr && itemSwapTargetName2.empty()) {
 			auto itemRecord = (BnsTables::EU::item_Record*)result;
-			auto textTable = DataHelper::GetTable(params->dataManager, L"text");
-			if (textTable != nullptr) {
-				auto textRecord = (BnsTables::EU::text_Record*)params->oFind(static_cast<DrMultiKeyTable*>(textTable), itemRecord->name2.Key);
-				if (textRecord != nullptr) {
-					itemSwapTargetName2 = textRecord->text.ReadableText;
-				}
+			auto textRecord = GetRecord<BnsTables::EU::text_Record>(params->dataManager, L"text", itemRecord->name2.Key, params->oFind);
+			if (textRecord != nullptr) {
+				itemSwapTargetName2 = textRecord->text.ReadableText;
 			}
 		}
 		if (itemSwapSourceName2.empty()) {
 			auto originalItemRecord = (BnsTables::EU::item_Record*)params->oFind(params->table, key);
-			auto textTable = DataHelper::GetTable(params->dataManager, L"text");
-			if (textTable != nullptr) {
-				auto textRecord = (BnsTables::EU::text_Record*)params->oFind(static_cast<DrMultiKeyTable*>(textTable), originalItemRecord->name2.Key);
-				if (textRecord != nullptr) {
-					itemSwapSourceName2 = textRecord->text.ReadableText;
-				}
+			auto textRecord = GetRecord<BnsTables::EU::text_Record>(params->dataManager, L"text", originalItemRecord->name2.Key, params->oFind);
+			if (textRecord != nullptr) {
+				itemSwapSourceName2 = textRecord->text.ReadableText;
 			}
 		}
 		//params->displaySystemChatMessage(L"ExampleItemPlugin: Redirected item key 4295902840 to 4294967396", false);
@@ -188,14 +182,15 @@ static void __fastcall Init(PluginInitParams* params) {
 		g_panelHandle = g_register(&desc);
 	}
 	if (params && params->dataManager) {
-		auto itemTable = DataHelper::GetTable(params->dataManager, L"item");
-		if (itemTable) {
-			auto mkTable = static_cast<DrMultiKeyTable*>(itemTable);
-			auto item100 = params->oFind(mkTable, 4294967396);
-			if (item100) {
-				auto itemRecord = (BnsTables::EU::item_Record*)item100;
-				item100Alias = std::wstring(itemRecord->alias ? itemRecord->alias : L"(no alias)");
-			}
+		auto item100Key = BnsTables::EU::item_Record::Key{};
+		item100Key.key = 0;
+		item100Key.id = 100;
+		item100Key.level = 1;
+
+		auto item100 = GetRecord<BnsTables::EU::item_Record>(params->dataManager, L"item", item100Key.key, params->oFind);
+		if (item100) {
+			auto itemRecord = (BnsTables::EU::item_Record*)item100;
+			item100Alias = std::wstring(itemRecord->alias ? itemRecord->alias : L"(no alias)");
 		}
 	}
 }

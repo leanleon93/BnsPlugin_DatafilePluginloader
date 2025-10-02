@@ -50,6 +50,70 @@ struct VersionInfo {
 	short minor;
 };
 
+using OFindFunc = DrEl * (__fastcall*)(DrMultiKeyTable* thisptr, unsigned __int64 key);
+
+inline DrMultiKeyTable* GetTable(const Data::DataManager* dataManager, int tableId) {
+	if (dataManager == nullptr) {
+		return nullptr;
+	}
+	auto index = tableId - 1;
+	int arraySize = sizeof(dataManager->_loaderDefs) / sizeof(dataManager->_loaderDefs[0]);
+	if (index < 0 || index >= arraySize) {
+		return nullptr;
+	}
+	auto loaderDef = dataManager->_loaderDefs[index];
+	auto tableDef = loaderDef.tableDef;
+	if (tableDef == nullptr) {
+		return nullptr;
+	}
+	auto table = dataManager->_loaderDefs[index].table;
+	return static_cast<DrMultiKeyTable*>(table);
+}
+
+inline DrMultiKeyTable* GetTable(const Data::DataManager* dataManager, const wchar_t* tableName) {
+	if (dataManager == nullptr || tableName == nullptr) {
+		return nullptr;
+	}
+	int arraySize = sizeof(dataManager->_loaderDefs) / sizeof(dataManager->_loaderDefs[0]);
+	for (int i = 0; i < arraySize; i++) {
+		auto loaderDef = dataManager->_loaderDefs[i];
+		auto tableDef = loaderDef.tableDef;
+		if (tableDef == nullptr) continue;
+		auto name = tableDef->name;
+		if (wcscmp(name, tableName) == 0) {
+			auto table = dataManager->_loaderDefs[i].table;
+			return static_cast<DrMultiKeyTable*>(table);
+		}
+	}
+	return nullptr;
+}
+
+
+inline DrEl* GetRecord(DrMultiKeyTable* table, unsigned __int64 key, OFindFunc oFind) {
+	if (table == nullptr || oFind == nullptr) {
+		return nullptr;
+	}
+	return oFind(table, key);
+}
+
+template<typename T>
+inline T* GetRecord(DrMultiKeyTable* table, unsigned __int64 key, OFindFunc oFind) {
+	return (T*)(GetRecord(table, key, oFind));
+}
+
+inline DrEl* GetRecord(const Data::DataManager* dataManager, const wchar_t* tableName, unsigned __int64 key, OFindFunc oFind) {
+	auto table = GetTable(dataManager, tableName);
+	if (table == nullptr) {
+		return nullptr;
+	}
+	return GetRecord(table, key, oFind);
+}
+
+template<typename T>
+inline T* GetRecord(const Data::DataManager* dataManager, const wchar_t* tableName, unsigned __int64 key, OFindFunc oFind) {
+	return (T*)(GetRecord(dataManager, tableName, key, oFind));
+}
+
 using GetVersionInfoFunc = VersionInfo(*)(short);
 
 inline bool IsVersionCompatible(PluginExecuteParams* params, GetVersionInfoFunc getVersionInfo) {
