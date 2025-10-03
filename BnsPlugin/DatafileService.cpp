@@ -3,6 +3,7 @@
 #ifdef _DEBUG
 #include <iostream>
 #endif // _DEBUG
+#include "DataHelper.h"
 
 std::unique_ptr<DatafileService> g_DatafileService;
 

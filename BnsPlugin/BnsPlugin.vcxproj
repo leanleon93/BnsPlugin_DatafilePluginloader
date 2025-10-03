@@ -249,6 +249,7 @@
     <ClCompile Include="callbacks.cpp" />
     <ClCompile Include="DatafilePluginManager.cpp" />
     <ClCompile Include="DatafileService.cpp" />
+    <ClCompile Include="DataHelper.cpp" />
     <ClCompile Include="deps\Detours\src\detours.cpp" />
     <ClCompile Include="deps\Detours\src\disasm.cpp" />
     <ClCompile Include="deps\Detours\src\image.cpp" />
@@ -273,6 +274,7 @@
     <ClInclude Include="DatafilePluginManager.h" />
     <ClInclude Include="DatafilePluginsdk.h" />
     <ClInclude Include="DatafileService.h" />
+    <ClInclude Include="DataHelper.h" />
     <ClInclude Include="DrEl.h" />
     <ClInclude Include="Hooks.h" />
     <ClInclude Include="imconfig.h" />

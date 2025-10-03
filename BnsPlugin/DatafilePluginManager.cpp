@@ -10,6 +10,7 @@
 #include "imgui_manager.h"
 #include "imgui.h"
 #include "ImGuiWrappers.h"
+#include "Hooks.h"
 
 namespace fs = std::filesystem;
 static constexpr const char* PLUGINLOADER_IDENTIFIER = "LeanDatafilePluginLoader";
