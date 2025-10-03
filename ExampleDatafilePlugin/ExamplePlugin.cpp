@@ -14,7 +14,9 @@ static std::wstring itemSwapTargetName2 = L"";
 static int itemCount = 0;
 static int textCount = 0;
 static std::vector<std::tuple<int, signed char, std::wstring>> itemList;
+static std::vector<std::tuple<int, signed char, std::wstring, std::wstring>> itemList2;
 static std::vector<std::tuple<unsigned __int64, std::wstring, std::wstring>> textList;
+static bool imguiDemo = false;
 
 static PluginReturnData __fastcall DatafileItemDetour(PluginExecuteParams* params) {
 	PLUGIN_DETOUR_GUARD(params, BnsTables::EU::TableNames::GetTableVersion);
@@ -102,6 +104,13 @@ static void MyTestPanel(void* userData) {
 	}
 	g_imgui->Separator();
 
+	g_imgui->Text("First 10 items with id >= 10000:");
+	for (size_t i = 0; i < itemList2.size() && i < 10; i++) {
+		auto& [id, level, alias, text] = itemList2[i];
+		g_imgui->Text("ID: %d, Level: %d, Alias: %ls, Name: %ls", id, level, alias.c_str(), text.c_str());
+	}
+	g_imgui->Separator();
+
 	g_imgui->Text("Total text records: %d", textCount);
 	g_imgui->Text("First 10 texts:");
 	for (size_t i = 0; i < textList.size() && i < 10; i++) {
@@ -133,73 +142,52 @@ static void MyTestPanel(void* userData) {
 	}
 	g_imgui->Separator();
 
-	if (g_imgui->Button("Click Me")) ++counter;
-	g_imgui->SameLine(0.0f, -1.0f);
-	if (g_imgui->SmallButton("Small")) --counter;
-	g_imgui->Text("Button pressed %d times", counter);
+	if (imguiDemo) {
+		if (g_imgui->Button("Click Me")) ++counter;
+		g_imgui->SameLine(0.0f, -1.0f);
+		if (g_imgui->SmallButton("Small")) --counter;
+		g_imgui->Text("Button pressed %d times", counter);
 
-	g_imgui->ArrowButton("Left", 0);
-	g_imgui->SameLine(0.0f, -1.0f);
-	g_imgui->ArrowButton("Right", 1);
-	g_imgui->SameLine(0.0f, -1.0f);
-	g_imgui->ArrowButton("Up", 2);
-	g_imgui->SameLine(0.0f, -1.0f);
-	g_imgui->ArrowButton("Down", 3);
+		g_imgui->ArrowButton("Left", 0);
+		g_imgui->SameLine(0.0f, -1.0f);
+		g_imgui->ArrowButton("Right", 1);
+		g_imgui->SameLine(0.0f, -1.0f);
+		g_imgui->ArrowButton("Up", 2);
+		g_imgui->SameLine(0.0f, -1.0f);
+		g_imgui->ArrowButton("Down", 3);
 
-	g_imgui->Checkbox("Check me", &check);
-	if (g_imgui->RadioButton("Radio A", radio == 0)) {
-		radio = 0;
+		g_imgui->Checkbox("Check me", &check);
+		if (g_imgui->RadioButton("Radio A", radio == 0)) {
+			radio = 0;
+		}
+		g_imgui->SameLine(0.0f, -1.0f);
+		if (g_imgui->RadioButton("Radio B", radio == 1)) {
+			radio = 1;
+		}
+		g_imgui->SameLine(0.0f, -1.0f);
+		g_imgui->RadioButtonInt("Radio C", &radio, 2);
+
+		g_imgui->InputText("Edit Me", buffer, 256);
+		g_imgui->InputInt("Integer", &counter);
+		g_imgui->SliderInt("Slider", &counter, 0, 200);
+		g_imgui->InputFloat("Float", &f);
+		g_imgui->SliderFloat("Float Slider", &f, 0.0f, 1.0f);
+
+		g_imgui->Combo("Combo", &combo_idx, combo_items, 3, 3);
+
+		if (g_imgui->CollapsingHeader("Collapsing Header")) {
+			g_imgui->Text("Inside collapsing header");
+		}
+
+		if (g_imgui->TreeNode("Tree Node")) {
+			g_imgui->Text("Inside tree node");
+			g_imgui->TreePop();
+		}
+
+		g_imgui->BeginChild("ChildWindow");
+		g_imgui->Text("Inside child window");
+		g_imgui->EndChild();
 	}
-	g_imgui->SameLine(0.0f, -1.0f);
-	if (g_imgui->RadioButton("Radio B", radio == 1)) {
-		radio = 1;
-	}
-	g_imgui->SameLine(0.0f, -1.0f);
-	g_imgui->RadioButtonInt("Radio C", &radio, 2);
-
-	g_imgui->InputText("Edit Me", buffer, 256);
-	g_imgui->InputInt("Integer", &counter);
-	g_imgui->SliderInt("Slider", &counter, 0, 200);
-	g_imgui->InputFloat("Float", &f);
-	g_imgui->SliderFloat("Float Slider", &f, 0.0f, 1.0f);
-
-	g_imgui->Combo("Combo", &combo_idx, combo_items, 3, 3);
-
-	if (g_imgui->CollapsingHeader("Collapsing Header")) {
-		g_imgui->Text("Inside collapsing header");
-	}
-
-	if (g_imgui->TreeNode("Tree Node")) {
-		g_imgui->Text("Inside tree node");
-		g_imgui->TreePop();
-	}
-
-	g_imgui->BeginChild("ChildWindow");
-	g_imgui->Text("Inside child window");
-	g_imgui->EndChild();
-
-	/*if (g_imgui->Button("Open Popup")) {
-		g_imgui->OpenPopup("MyPopup");
-	}
-	if (g_imgui->BeginPopup("MyPopup")) {
-		g_imgui->Text("Popup content!");
-		if (g_imgui->Button("Close")) g_imgui->EndPopup();
-		g_imgui->EndPopup();
-	}*/
-
-	/*g_imgui->BeginTooltip();
-	g_imgui->Text("Tooltip text!");
-	g_imgui->EndTooltip();*/
-
-	//g_imgui->SetTooltip("Quick tooltip!");
-
-	/*if (g_imgui->Begin("Extra Window", &window_open)) {
-		g_imgui->Text("Inside another window");
-		g_imgui->End();
-	}*/
-
-	/*g_imgui->Spacing();
-	g_imgui->Dummy(10.0f, 10.0f);*/
 }
 
 static void __fastcall Init(PluginInitParams* params) {
@@ -238,6 +226,15 @@ static void __fastcall Init(PluginInitParams* params) {
 			}
 			return true;
 			}, 10);
+		auto matches = GetRecordsWhere<BnsTables::EU::item_Record>(params->dataManager, L"item", [](BnsTables::EU::item_Record* rec) {
+			return rec && rec->key.id >= 10000;
+			}, 10);
+		for (auto& rec : matches) {
+			if (rec) {
+				auto textRecord = GetText<BnsTables::EU::text_Record>(params->dataManager, rec->name2.Key, params->oFind);
+				itemList2.push_back(std::make_tuple(rec->key.id, rec->key.level, rec->alias ? rec->alias : L"(no alias)", textRecord ? (textRecord->text.ReadableText ? textRecord->text.ReadableText : L"(no text)") : L"(text not found)"));
+			}
+		}
 	}
 }
 

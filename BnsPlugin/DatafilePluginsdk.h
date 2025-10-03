@@ -168,6 +168,73 @@ inline void ForEachRecord(
 		}, limit);
 }
 
+template<typename RecordType>
+inline std::vector<RecordType*> GetRecordsWhere(
+	DrMultiKeyTable* table,
+	std::function<bool(RecordType*)> predicate,
+	size_t limit = SIZE_MAX
+) {
+	std::vector<RecordType*> results;
+	ForEachRecord<RecordType>(table, [&](RecordType* el, size_t) {
+		if (predicate(el)) {
+			results.push_back(el);
+			if (results.size() >= limit) return false;
+		}
+		return true;
+		});
+	return results;
+}
+
+template<typename RecordType>
+inline std::vector<RecordType*> GetRecordsWhere(
+	const Data::DataManager* dataManager,
+	const wchar_t* tableName,
+	std::function<bool(RecordType*)> predicate,
+	size_t limit = SIZE_MAX
+) {
+	auto table = GetTable(dataManager, tableName);
+	return GetRecordsWhere<RecordType>(table, predicate, limit);
+}
+
+template<typename RecordType>
+inline RecordType* GetFirstRecordWhere(
+	DrMultiKeyTable* table,
+	std::function<bool(RecordType*)> predicate
+) {
+	RecordType* result = nullptr;
+	ForEachRecord<RecordType>(table, [&](RecordType* el, size_t) {
+		if (predicate(el)) {
+			result = el;
+			return false; // stop iteration
+		}
+		return true;
+		});
+	return result;
+}
+
+template<typename RecordType>
+inline RecordType* GetFirstRecordWhere(
+	const Data::DataManager* dataManager,
+	const wchar_t* tableName,
+	std::function<bool(RecordType*)> predicate
+) {
+	auto table = GetTable(dataManager, tableName);
+	return GetFirstRecordWhere<RecordType>(table, predicate);
+}
+
+template<typename RecordType>
+inline RecordType* GetText(
+	const Data::DataManager* dataManager,
+	unsigned __int64 textKey,
+	OFindFunc oFind
+) {
+	static DrMultiKeyTable* textTable = nullptr;
+	if (textTable == nullptr) {
+		textTable = GetTable(dataManager, L"text");
+	}
+	return GetRecord<RecordType>(textTable, textKey, oFind);
+}
+
 //This is pretty slow and hanging on main thread if the table is large
 inline int GetRecordCount(DrMultiKeyTable* table) {
 	if (!table) return 0;
