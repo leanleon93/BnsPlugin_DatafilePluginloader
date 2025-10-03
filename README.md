@@ -44,13 +44,16 @@ graph TD
 
 ## Usage
 
-1. **Create the plugin folder:**
+1. **Install datafile pluginloader:**
+   - Place `DatafilePluginloader.dll` into the `plugins` folder of your BnS NEO installation (where `BNSR.exe` is located).
+
+2. **Create the plugin folder:**
    - In the same directory as `BNSR.exe`, create a folder named `datafilePlugins` (next to the existing `plugins` folder).
 
-2. **Add your plugins:**
-   - Place your datafile hook plugin DLLs into the `datafilePlugins` folder.
+3. **Add your plugins:**
+   - Place your datafile plugin DLLs into the `datafilePlugins` folder.
 
-3. **In-game controls:**
+4. **In-game controls:**
    - Press `INSERT` to open the settings UI.
    - Click `Reload all plugins` to refresh plugins without restarting the game.
 
@@ -58,9 +61,9 @@ graph TD
 
 ## Examples
 
-- **Lightweight GUI Example:** See the `ExampleDatafilePlugin` project.
+- **Demo GUI Example:** See the `ExampleDatafilePlugin` project.
 - **Data Editing Example:** See the `ArtifactDatafilePlugin` project.
-
+- **Animation Filter:** See the [BnsDatafilePlugin_AnimationRemover](https://github.com/leanleon93/BnsDatafilePlugin_AnimationRemover) project.
 ---
 
 ## Notes
