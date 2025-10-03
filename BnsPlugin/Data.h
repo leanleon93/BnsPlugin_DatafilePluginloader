@@ -101,6 +101,7 @@ struct DrMultiKeyElMap {
 	int elCount;
 };
 
+//Just use MultiKeyTable for everything. The structures for AutokeyTables and DataCache are the same.
 struct __declspec(align(4)) DrMultiKeyTable : DrDataTableImpl {
 	DrMultiKeyElMap _elMap;
 };
