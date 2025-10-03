@@ -2,6 +2,7 @@
 #include <EU/text/AAA_text_RecordBase.h>
 #include <EU/item/AAA_item_RecordBase.h>
 #include <EU/BnsTableNames.h>
+#include <algorithm>
 
 static int g_panelHandle = 0;
 static RegisterImGuiPanelFn g_register = nullptr;
@@ -10,6 +11,10 @@ static PluginImGuiAPI* g_imgui = nullptr;
 static std::wstring item100Alias = L"";
 static std::wstring itemSwapSourceName2 = L"";
 static std::wstring itemSwapTargetName2 = L"";
+static int itemCount = 0;
+static int textCount = 0;
+static std::vector<std::tuple<int, signed char, std::wstring>> itemList;
+static std::vector<std::tuple<unsigned __int64, std::wstring, std::wstring>> textList;
 
 static PluginReturnData __fastcall DatafileItemDetour(PluginExecuteParams* params) {
 	PLUGIN_DETOUR_GUARD(params, BnsTables::EU::TableNames::GetTableVersion);
@@ -78,6 +83,31 @@ static void MyTestPanel(void* userData) {
 	static bool window_open = true;
 
 	g_imgui->Text("Hello from example plugin panel!");
+	g_imgui->Separator();
+
+	g_imgui->Text("Total item records: %d", itemCount);
+	g_imgui->Separator();
+
+	//sort itemList by id
+	std::sort(itemList.begin(), itemList.end(), [](const auto& a, const auto& b) {
+		if (std::get<0>(a) == std::get<0>(b)) {
+			return std::get<1>(a) < std::get<1>(b);
+		}
+		return std::get<0>(a) < std::get<0>(b);
+		});
+	g_imgui->Text("First 10 items:");
+	for (size_t i = 0; i < itemList.size() && i < 10; i++) {
+		auto& [id, level, alias] = itemList[i];
+		g_imgui->Text("ID: %d, Level: %d, Alias: %ls", id, level, alias.c_str());
+	}
+	g_imgui->Separator();
+
+	g_imgui->Text("Total text records: %d", textCount);
+	g_imgui->Text("First 10 texts:");
+	for (size_t i = 0; i < textList.size() && i < 10; i++) {
+		auto& [autoId, alias, readableText] = textList[i];
+		g_imgui->Text("AutoID: %llu, Alias: %ls, Text: %ls", autoId, alias.c_str(), readableText.c_str());
+	}
 	g_imgui->Separator();
 
 	if (!item100Alias.empty()) {
@@ -192,6 +222,22 @@ static void __fastcall Init(PluginInitParams* params) {
 			auto itemRecord = (BnsTables::EU::item_Record*)item100;
 			item100Alias = std::wstring(itemRecord->alias ? itemRecord->alias : L"(no alias)");
 		}
+		auto itemTable = GetTable(params->dataManager, L"item");
+		itemCount = GetRecordCount(params->dataManager, L"item");
+		textCount = GetRecordCount(params->dataManager, L"text");
+		ForEachRecord<BnsTables::EU::item_Record>(params->dataManager, L"item", [](BnsTables::EU::item_Record* rec, size_t idx) {
+			if (rec) {
+				itemList.push_back(std::make_tuple(rec->key.id, rec->key.level, rec->alias ? rec->alias : L"(no alias)"));
+			}
+			return true;
+			}, 10);
+		int count = 0;
+		ForEachRecord<BnsTables::EU::text_Record>(params->dataManager, L"text", [](BnsTables::EU::text_Record* rec, size_t idx) {
+			if (rec) {
+				textList.push_back(std::make_tuple(rec->key.autoId, rec->alias, rec->text.ReadableText ? rec->text.ReadableText : L"(no text)"));
+			}
+			return true;
+			}, 10);
 	}
 }
 

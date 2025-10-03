@@ -5,6 +5,7 @@
 #include <cwchar>
 #include <unordered_map>
 #include "imgui_plugin_api.h"
+#include <functional>
 
 #ifdef _WIN32
 #define PLUGIN_EXPORT extern "C" __declspec(dllexport)
@@ -112,6 +113,75 @@ inline DrEl* GetRecord(const Data::DataManager* dataManager, const wchar_t* tabl
 template<typename T>
 inline T* GetRecord(const Data::DataManager* dataManager, const wchar_t* tableName, unsigned __int64 key, OFindFunc oFind) {
 	return (T*)(GetRecord(dataManager, tableName, key, oFind));
+}
+
+inline void ForEachRecord(
+	DrMultiKeyTable* table,
+	std::function<bool(DrEl*, size_t)> func,
+	size_t limit = SIZE_MAX
+) {
+	if (!table || !table->__vftable || !func) return;
+	auto innerIter = table->__vftable->createInnerIter(table);
+	if (!innerIter) return;
+	size_t index = 0;
+	do {
+		if (!innerIter->_vtptr->IsValid(innerIter)) continue;
+		DrEl* el = innerIter->_vtptr->Ptr(innerIter);
+		if (el) {
+			if (!func(el, index)) break; // break if func returns false
+			++index;
+			if (index >= limit) break;   // break if limit reached
+		}
+	} while (innerIter->_vtptr->Next(innerIter));
+}
+
+template<typename RecordType>
+inline void ForEachRecord(
+	DrMultiKeyTable* table,
+	std::function<bool(RecordType*, size_t)> func,
+	size_t limit = SIZE_MAX
+) {
+	ForEachRecord(table, [&](DrEl* el, size_t idx) {
+		return func((RecordType*)(el), idx);
+		}, limit);
+}
+
+inline void ForEachRecord(
+	const Data::DataManager* dataManager,
+	const wchar_t* tableName,
+	std::function<bool(DrEl*, size_t)> func,
+	size_t limit = SIZE_MAX
+) {
+	auto table = GetTable(dataManager, tableName);
+	ForEachRecord(table, func, limit);
+}
+
+template<typename RecordType>
+inline void ForEachRecord(
+	const Data::DataManager* dataManager,
+	const wchar_t* tableName,
+	std::function<bool(RecordType*, size_t)> func,
+	size_t limit = SIZE_MAX
+) {
+	ForEachRecord(dataManager, tableName, [&](DrEl* el, size_t idx) {
+		return func((RecordType*)(el), idx);
+		}, limit);
+}
+
+//This is pretty slow and hanging on main thread if the table is large
+inline int GetRecordCount(DrMultiKeyTable* table) {
+	if (!table) return 0;
+	int count = 0;
+	ForEachRecord(table, [&](DrEl*, size_t) { count++; return true; });
+	return count;
+}
+//This is pretty slow and hanging on main thread if the table is large
+inline int GetRecordCount(
+	const Data::DataManager* dataManager,
+	const wchar_t* tableName
+) {
+	auto table = GetTable(dataManager, tableName);
+	return GetRecordCount(table);
 }
 
 using GetVersionInfoFunc = VersionInfo(*)(short);
