@@ -1,0 +1,51 @@
+name: Update minimal branch with history
+
+on:
+  push:
+    branches:
+      - master   # trigger when master changes
+    paths:
+      - 'BnsPlugin/Data.h'
+      - 'BnsPlugin/DatafilePluginsdk.h'
+      - 'BnsPlugin/DrEl.h'
+      - 'BnsPlugin/imgui_plugin_api.h'
+      
+jobs:
+  update-minimal:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo with full history
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # full history needed for branch updates
+
+      - name: Set up Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Ensure minimal branch exists
+        run: |
+          git fetch origin minimal-sdk-headers || echo "Branch does not exist yet"
+          git checkout minimal-sdk-headers || git checkout -b minimal-sdk-headers
+
+      - name: Copy latest Data.h from master
+        run: |
+          git checkout origin/master -- \
+            BnsPlugin/Data.h \
+            BnsPlugin/DatafilePluginsdk.h \
+            BnsPlugin/DrEl.h \
+            BnsPlugin/imgui_plugin_api.h
+
+      - name: Commit and push if changed
+        run: |
+          git add BnsPlugin/Data.h \
+                  BnsPlugin/DatafilePluginsdk.h \
+                  BnsPlugin/DrEl.h \
+                  BnsPlugin/imgui_plugin_api.h
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "Update header files from master"
+            git push origin minimal-sdk-headers
+          else
+            echo "No changes to commit"
