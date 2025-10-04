@@ -31,22 +31,19 @@ jobs:
           git fetch origin minimal-sdk-headers || echo "Branch does not exist yet"
           git checkout minimal-sdk-headers || git checkout -b minimal-sdk-headers
 
-      - name: Copy latest Data.h from master
-        run: |
-          git checkout origin/master -- \
-            BnsPlugin/Data.h \
-            BnsPlugin/DatafilePluginsdk.h \
-            BnsPlugin/DrEl.h \
-            BnsPlugin/imgui_plugin_api.h
+      - name: Copy latest headers from master
+        run: git checkout origin/master -- BnsPlugin/Data.h BnsPlugin/DatafilePluginsdk.h BnsPlugin/DrEl.h BnsPlugin/imgui_plugin_api.h
 
-      - name: Commit and push if changed
+
+      - name: Add header files
+        run: git add BnsPlugin/Data.h BnsPlugin/DatafilePluginsdk.h BnsPlugin/DrEl.h BnsPlugin/imgui_plugin_api.h
+      
+      - name: Commit changes
         run: |
-          git add BnsPlugin/Data.h \
-                  BnsPlugin/DatafilePluginsdk.h \
-                  BnsPlugin/DrEl.h \
-                  BnsPlugin/imgui_plugin_api.h
           if ! git diff-index --quiet HEAD; then
             git commit -m "Update header files from master"
             git push origin minimal-sdk-headers
           else
             echo "No changes to commit"
+          fi
+
