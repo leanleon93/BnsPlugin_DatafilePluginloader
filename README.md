@@ -64,6 +64,7 @@ graph TD
 - **Demo GUI Example:** See the `ExampleDatafilePlugin` project.
 - **Data Editing Example:** See the `ArtifactDatafilePlugin` project.
 - **Animation Filter:** See the [BnsDatafilePlugin_AnimationRemover](https://github.com/leanleon93/BnsDatafilePlugin_AnimationRemover) project.
+- **Template:** See the [DatafilePluginTemplate](https://github.com/leanleon93/BnsDatafilePlugin_Template) project.
 ---
 
 ## Notes
