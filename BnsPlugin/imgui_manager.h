@@ -16,6 +16,7 @@ bool ImGuiManager_IsInitialized();
 LRESULT CALLBACK ImGuiManager_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 typedef HRESULT(__stdcall* Present_t)(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags);
+void ImGuiManager_OnSwapchainResize();
 // For use in your present hook
 void ImGuiManager_OnPresent(IDXGISwapChain* pSwapChain, Present_t oPresent, IDXGISwapChain* swap, UINT sync, UINT flags);
 

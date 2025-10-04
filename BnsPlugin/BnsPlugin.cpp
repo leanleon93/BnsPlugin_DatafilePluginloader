@@ -156,7 +156,8 @@ static __int64* InitDetours() {
 }
 
 Present_t oPresent = nullptr;
-
+typedef HRESULT(__stdcall* ResizeBuffers_t)(IDXGISwapChain* pSwapChain, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat, UINT SwapChainFlags);
+ResizeBuffers_t oResizeBuffers = nullptr;
 
 std::atomic<bool> g_runMainThreadInit{ false };
 std::function<void()> g_mainThreadInitCallback;
@@ -172,7 +173,16 @@ static HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
 	return 0;
 }
 
-static void* GetPresentAddr()
+static HRESULT __stdcall hkResizeBuffers(IDXGISwapChain* pSwapChain, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat, UINT SwapChainFlags)
+{
+	// Release ImGui's render target view before resizing
+	ImGuiManager_OnSwapchainResize();
+
+	// Call the original ResizeBuffers
+	return oResizeBuffers(pSwapChain, BufferCount, Width, Height, NewFormat, SwapChainFlags);
+}
+
+static std::pair<void*, void*> GetPresentAndResizeAddr()
 {
 	DXGI_SWAP_CHAIN_DESC sd = {};
 	sd.BufferCount = 1;
@@ -191,28 +201,29 @@ static void* GetPresentAddr()
 	HRESULT hr = D3D11CreateDeviceAndSwapChain(
 		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, nullptr, 0,
 		D3D11_SDK_VERSION, &sd, &pSwapChain, &pDevice, nullptr, &pContext);
-	if (FAILED(hr)) return nullptr;
+	if (FAILED(hr)) return { nullptr, nullptr };
 
 	void** vtable = *(void***)(pSwapChain);
 	void* addr = vtable[8];
-
+	void* addr2 = vtable[13];
 	if (pSwapChain) pSwapChain->Release();
 	if (pDevice) pDevice->Release();
 	if (pContext) pContext->Release();
-	return addr;
+	return { addr, addr2 };
 }
 
-
 static DWORD WINAPI InitImgui() {
-	void* presentAddr = GetPresentAddr();
+	auto [presentAddr, resizeBuffersAddr] = GetPresentAndResizeAddr();
 	if (!presentAddr)
 		return 1;
 
 	oPresent = (Present_t)presentAddr;
+	oResizeBuffers = (ResizeBuffers_t)resizeBuffersAddr;
 
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
 	DetourAttach(&(PVOID&)oPresent, hkPresent);
+	DetourAttach(&(PVOID&)oResizeBuffers, hkResizeBuffers);
 	DetourTransactionCommit();
 	return 0;
 }

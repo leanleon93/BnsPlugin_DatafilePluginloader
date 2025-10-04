@@ -6,6 +6,9 @@
 #include <mutex>
 #include <string>
 #include "DatafilePluginManager.h"
+#include <windows.h>
+#include <fstream>
+#include <ctime>
 
 static ID3D11Device* g_pd3dDevice = nullptr;
 static ID3D11DeviceContext* g_pd3dDeviceContext = nullptr;
@@ -82,8 +85,104 @@ void ImGuiManager_NewFrame()
 static bool g_ImGuiPanelVisible = false;
 bool do_reload = false;
 
+#ifdef _DEBUG
+static std::mutex g_LogMutex;
+static const size_t kMaxLogSize = 1024 * 1024; // 1 MB
+
+static void DebugLog(const char* msg)
+{
+	std::lock_guard<std::mutex> lock(g_LogMutex);
+
+	// Check file size and clear if too large
+	std::ifstream in("imgui_debug.log", std::ios::ate | std::ios::binary);
+	if (in.is_open()) {
+		std::streamsize size = in.tellg();
+		in.close();
+		if (size > static_cast<std::streamsize>(kMaxLogSize)) {
+			std::ofstream clear("imgui_debug.log", std::ios::trunc);
+			// Optionally, write a marker that the log was cleared
+			if (clear.is_open()) {
+				clear << "[LOG CLEARED DUE TO SIZE LIMIT]\n";
+			}
+		}
+	}
+
+	std::ofstream log("imgui_debug.log", std::ios::app);
+	if (log.is_open()) {
+		// Add timestamp
+		std::time_t t = std::time(nullptr);
+		char timebuf[32];
+		std::strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
+		log << "[" << timebuf << "] " << msg;
+		// Ensure newline
+		if (msg[0] && msg[strlen(msg) - 1] != '\n') log << "\n";
+	}
+}
+#else
+#define DebugLog(msg) ((void)0)
+#endif
+
+// C-style SEH wrapper: no std::string, only POD types
+static void SafePanelCall_SEH(ImGuiPanelRenderFn fn, void* userData, const char* name) {
+	__try {
+		fn(userData);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER) {
+#ifdef _DEBUG
+		char buf[256];
+		strncpy(buf, "ImGui panel SEH exception in: ", sizeof(buf) - 1);
+		buf[sizeof(buf) - 1] = '\0';
+		strncat(buf, name, sizeof(buf) - strlen(buf) - 2);
+		strncat(buf, "\n", sizeof(buf) - strlen(buf) - 1);
+		DebugLog(buf);
+#endif
+	}
+}
+
+// C++ wrapper (safe to use std::string here, but not in SEH function)
+static void SafePanelCall(ImGuiPanelRenderFn fn, void* userData, const std::string& name) {
+	SafePanelCall_SEH(fn, userData, name.c_str());
+}
+
+// Release RTV (call before swapchain resize or device loss)
+static void ReleaseRenderTarget()
+{
+	if (g_mainRenderTargetView) {
+		g_mainRenderTargetView->Release();
+		g_mainRenderTargetView = nullptr;
+		DebugLog("ImGuiManager: Released main render target view.\n");
+	}
+}
+
+// Always recreate RTV (robust for alt-tab, resize, device loss)
+static void CreateRenderTarget(IDXGISwapChain* pSwapChain)
+{
+	ReleaseRenderTarget();
+	ID3D11Texture2D* pBackBuffer = nullptr;
+	if (SUCCEEDED(pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer)) && pBackBuffer)
+	{
+		HRESULT hr = g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
+		pBackBuffer->Release();
+		if (FAILED(hr)) {
+			DebugLog("ImGuiManager: Failed to create render target view!\n");
+		}
+		else {
+			DebugLog("ImGuiManager: Created main render target view.\n");
+		}
+	}
+	else
+	{
+		DebugLog("ImGuiManager: Failed to get backbuffer from swapchain!\n");
+	}
+}
+
 void ImGuiManager_Render()
 {
+	if (!g_pd3dDevice || !g_pd3dDeviceContext || !g_mainRenderTargetView) {
+		DebugLog("ImGuiManager_Render: D3D device/context/RTV is null!\n");
+		return;
+	}
+
 	if (do_reload && g_DatafilePluginManager) {
 		auto results = g_DatafilePluginManager->ReloadAll();
 		do_reload = false;
@@ -96,7 +195,7 @@ void ImGuiManager_Render()
 	ImGui::Begin("Datfile Plugins", &g_ImGuiPanelVisible);
 	for (auto& [id, entry] : g_Panels) {
 		if (ImGui::CollapsingHeader(entry.name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-			entry.fn(entry.userData); // Call the plugin's panel function
+			SafePanelCall(entry.fn, entry.userData, entry.name);
 		}
 	}
 	ImGui::End();
@@ -114,6 +213,7 @@ LRESULT CALLBACK ImGuiManager_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 	if (msg == WM_KEYDOWN && wParam == VK_INSERT)
 	{
 		g_ImGuiPanelVisible = !g_ImGuiPanelVisible;
+		DebugLog("ImGuiManager_WndProc: Toggled ImGui panel visibility.\n");
 		return 0; // Eat the key
 	}
 
@@ -128,6 +228,12 @@ LRESULT CALLBACK ImGuiManager_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 			return 0; // Block game mouse input
 	}
 
+	// Defensive: check oWndProc
+	if (!oWndProc) {
+		DebugLog("ImGuiManager_WndProc: oWndProc is null!\n");
+		return DefWindowProc(hWnd, msg, wParam, lParam);
+	}
+
 	// Call original WndProc for all other cases
 	return CallWindowProc(oWndProc, hWnd, msg, wParam, lParam);
 }
@@ -139,37 +245,37 @@ static HWND GetSwapChainHWND(IDXGISwapChain* pSwapChain) {
 	return sd.OutputWindow;
 }
 
-static void CreateRenderTarget(IDXGISwapChain* pSwapChain)
+// Call this before swapchain resize (if you hook ResizeBuffers)
+void ImGuiManager_OnSwapchainResize()
 {
-	if (g_mainRenderTargetView)
-		return;
-	ID3D11Texture2D* pBackBuffer = nullptr;
-	pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-	if (pBackBuffer)
-	{
-		g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
-		pBackBuffer->Release();
-	}
+	ImGui_ImplDX11_InvalidateDeviceObjects();
+	ReleaseRenderTarget();
+	DebugLog("ImGuiManager_OnSwapchainResize: Swapchain resize handled.\n");
 }
 
 void ImGuiManager_OnPresent(IDXGISwapChain* pSwapChain, Present_t oPresent, IDXGISwapChain* swap, UINT sync, UINT flags)
 {
 	if (!g_Initialized)
 	{
-		if (FAILED(pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&g_pd3dDevice)))
+		if (FAILED(pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&g_pd3dDevice))) {
+			DebugLog("ImGuiManager_OnPresent: Failed to get D3D11 device from swapchain!\n");
 			return;
+		}
 		g_pd3dDevice->GetImmediateContext(&g_pd3dDeviceContext);
-		CreateRenderTarget(pSwapChain);
+		DebugLog("ImGuiManager_OnPresent: D3D11 device/context created.\n");
 		g_hWnd = GetSwapChainHWND(pSwapChain);
 		ImGuiManager_Init(g_hWnd, g_pd3dDevice, g_pd3dDeviceContext);
 	}
-	else
+
+	// Only do ImGui work if the panel is visible
+	if (g_ImGuiPanelVisible)
 	{
 		CreateRenderTarget(pSwapChain);
-	}
+		ImGui_ImplDX11_CreateDeviceObjects();
 
-	ImGuiManager_NewFrame();
-	ImGuiManager_Render();
+		ImGuiManager_NewFrame();
+		ImGuiManager_Render();
+	}
 
 	oPresent(swap, sync, flags);
 }

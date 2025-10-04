@@ -27,10 +27,13 @@ public:
 	explicit DatafilePluginManager(const std::string& folder);
 	~DatafilePluginManager();
 	DrEl* ExecuteAll(PluginExecuteParams* params);
+	void UnloadPlugin(std::string_view plugin_path);
 	void UnloadPlugins();
 
+	[[nodiscard]] std::string ReloadPlugin(std::string_view plugin_path);
 	[[nodiscard]] std::vector<std::string> ReloadAll();
 	std::vector<std::string> GetPluginStateText();
+	std::unordered_map<std::string, std::unique_ptr<PluginHandle>>* GetPlugins() { return &_plugins; }
 private:
 	std::string _plugins_folder; // source folder for plugins
 	const std::string _shadow_dir_path; // temp shadow dir where we load from

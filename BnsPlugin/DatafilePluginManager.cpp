@@ -80,21 +80,24 @@ static void GlobalConfigUiPanel(void* userData) {
 	auto stateTexts = g_DatafilePluginManager ? g_DatafilePluginManager->GetPluginStateText() : std::vector<std::string>{ "Plugin manager not initialized." };
 	for (const auto& line : stateTexts) {
 		if (line.find("[Failed]") == 0) {
-			ImGui_TextColored_Wrapper(1.0f, 0.2f, 0.2f, 1.0f, "%s", line.c_str()); // Red
+			ImGui_TextColored_Wrapper(1.0f, 0.2f, 0.2f, 1.0f, "%s", line.c_str());
 		}
 		else if (line.find("[Loaded]") == 0) {
-			ImGui_TextColored_Wrapper(0.2f, 1.0f, 0.2f, 1.0f, "%s", line.c_str()); // Green
+			ImGui_TextColored_Wrapper(0.2f, 1.0f, 0.2f, 1.0f, "%s", line.c_str());
 		}
 		else {
 			ImGui::Text("%s", line.c_str());
 		}
+	}
+	if (stateTexts.empty()) {
+		ImGui::Text("No plugins loaded.");
 	}
 
 	ImGui::Spacing();
 	ImGui::Separator();
 	ImGui::Spacing();
 
-	if (ImGui::Button("Reload all plugins")) {
+	if (ImGui::Button("Reload plugins")) {
 		do_reload = true;
 	}
 
@@ -125,6 +128,37 @@ DatafilePluginManager::~DatafilePluginManager() {
 	if (_panelHandle) {
 		UnregisterImGuiPanel(_panelHandle);
 		_panelHandle = 0;
+	}
+}
+
+void DatafilePluginManager::UnloadPlugin(std::string_view plugin_path) {
+	if (auto it = _plugins.find(std::string(plugin_path)); it != _plugins.end()) {
+		PluginHandle* handle = it->second.get();
+		if (handle && handle->dll) {
+			for (const auto* handlerPtr : handle->tableHandlers) {
+				if (!handlerPtr || !handlerPtr->tableName) continue;
+				std::wstring tname(handlerPtr->tableName);
+				if (auto it2 = _table_plugin_cache.find(tname); it2 != _table_plugin_cache.end()) {
+					auto& vec = it2->second;
+					vec.erase(std::remove_if(vec.begin(), vec.end(), [&](const auto& p) { return p.first == handle && p.second == handlerPtr; }), vec.end());
+					if (vec.empty()) _table_plugin_cache.erase(it2);
+				}
+			}
+			if (handle->unregister) {
+				try {
+					handle->unregister();
+				}
+				catch (...) {
+					// ignore
+				}
+			}
+			FreeLibrary(handle->dll);
+		}
+		if (handle && !handle->shadow_path.empty()) {
+			std::error_code ec; fs::remove(handle->shadow_path, ec);
+		}
+		_plugins.erase(it);
+		_table_compare_cache.clear();
 	}
 }
 
@@ -159,10 +193,16 @@ void DatafilePluginManager::UnloadPlugins() {
 	}
 }
 
+std::string DatafilePluginManager::ReloadPlugin(std::string_view plugin_path) {
+	std::string plugin_path_copy(plugin_path);
+	UnloadPlugin(plugin_path_copy);
+	return ReloadPluginIfChanged(plugin_path_copy);
+}
+
 std::vector<std::string> DatafilePluginManager::ReloadAll() {
 	std::vector<std::string> results;
 	// Remove all plugin handles so they will be forcibly loaded next time
-	UnloadPlugins();
+	//UnloadPlugins();
 
 	for (const auto& entry : fs::directory_iterator(_plugins_folder)) {
 		if (entry.path().extension() == ".dll") {
@@ -278,12 +318,15 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 			}
 		}
 		if (handle->unregister) {
-			try {
-				handle->unregister();
-			}
-			catch (...) {
-				// ignore
-			}
+			auto call_unregister = [](PluginUnregisterFunc fn) {
+				__try {
+					fn();
+				}
+				__except (EXCEPTION_EXECUTE_HANDLER) {
+					// ignore
+				}
+				};
+			call_unregister(handle->unregister);
 		}
 		FreeLibrary(handle->dll);
 	}
@@ -392,21 +435,33 @@ DrEl* DatafilePluginManager::ExecuteAll(PluginExecuteParams* params) {
 	for (const auto& pluginTuple : it->second) {
 		const auto* handler = pluginTuple.second;
 		if (handler && handler->executeFunc) {
-			try {
-				params->oFind = oFind_b8Wrapper; //wrap instead of using specific find
-				auto pluginReturnValue = handler->executeFunc(params);
-				if (pluginReturnValue.drEl) return pluginReturnValue.drEl;
-			}
-			catch (const std::exception& ex) {
-#ifdef _DEBUG
-				std::cerr << "Exception in datafile plugin " << (pluginTuple.first->identifier ? pluginTuple.first->identifier() : "unknown") << ": " << ex.what() << '\n';
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4509) // Suppress warning about __try with object unwinding
 #endif
-			}
-			catch (...) {
+			// Move the __try/__except into a static function to avoid C2712
+			struct SehWrapper {
+				static DrEl* CallExecuteFunc(const PluginTableHandler* handler, PluginExecuteParams* params, PluginHandle* pluginHandle) {
+					DrEl* result = nullptr;
+					__try {
+						params->oFind = oFind_b8Wrapper;
+						auto pluginReturnValue = handler->executeFunc(params);
+						if (pluginReturnValue.drEl) result = pluginReturnValue.drEl;
+					}
+					__except (EXCEPTION_EXECUTE_HANDLER) {
 #ifdef _DEBUG
-				std::cerr << "Unknown exception in datafile plugin " << (pluginTuple.first->identifier ? pluginTuple.first->identifier() : "unknown") << '\n';
+						std::cerr << "SEH exception in datafile plugin "
+							<< (pluginHandle->identifier ? pluginHandle->identifier() : "unknown") << '\n';
 #endif
-			}
+					}
+					return result;
+				}
+			};
+			DrEl* pluginResult = SehWrapper::CallExecuteFunc(handler, params, pluginTuple.first);
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+			if (pluginResult) return pluginResult;
 		}
 	}
 	return nullptr;
