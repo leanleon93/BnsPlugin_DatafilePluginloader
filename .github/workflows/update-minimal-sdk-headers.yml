@@ -14,11 +14,14 @@ on:
 jobs:
   update-minimal:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write  # <-- allows pushing to the repo
+    
     steps:
-      - name: Checkout repo with full history
+      - name: Checkout repo
         uses: actions/checkout@v3
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0  # full history needed for branch updates
 
       - name: Set up Git identity
