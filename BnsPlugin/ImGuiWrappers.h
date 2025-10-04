@@ -94,6 +94,7 @@ PluginImGuiAPI g_imguiApi = {
 	&ImGui::BeginTooltip,
 	&ImGui::EndTooltip,
 	&ImGui::SetTooltip,
+	&ImGui::IsItemHovered,
 	&ImGui_Begin_Wrapper,
 	&ImGui::End,
 	&ImGui::Spacing,

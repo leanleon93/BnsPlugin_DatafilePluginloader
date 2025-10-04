@@ -59,6 +59,7 @@ struct PluginImGuiAPI {
 	bool (*BeginTooltip)();
 	void (*EndTooltip)();
 	void (*SetTooltip)(const char* fmt, ...);
+	bool (*IsItemHovered)(int flags);
 
 	// Windows
 	bool (*Begin)(const char* name, bool* p_open);
