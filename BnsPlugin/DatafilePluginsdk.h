@@ -14,7 +14,7 @@
 #define PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
-constexpr int PLUGIN_API_VERSION = 8;
+constexpr int PLUGIN_API_VERSION = 9;
 
 
 struct PluginReturnData {
