@@ -9,7 +9,8 @@ on:
       - 'BnsPlugin/DatafilePluginsdk.h'
       - 'BnsPlugin/DrEl.h'
       - 'BnsPlugin/imgui_plugin_api.h'
-      
+  workflow_dispatch:
+  
 jobs:
   update-minimal:
     runs-on: ubuntu-latest
