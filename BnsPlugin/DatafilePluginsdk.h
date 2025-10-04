@@ -1,11 +1,12 @@
 #pragma once
-#include "DatafileService.h"
 #include <cstddef>
 #include <type_traits>
 #include <cwchar>
 #include <unordered_map>
-#include "imgui_plugin_api.h"
 #include <functional>
+#include <string>
+#include "Data.h"
+#include "imgui_plugin_api.h"
 
 #ifdef _WIN32
 #define PLUGIN_EXPORT extern "C" __declspec(dllexport)
