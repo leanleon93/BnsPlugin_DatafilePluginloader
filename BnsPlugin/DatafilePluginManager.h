@@ -22,6 +22,9 @@ struct PluginHandle {
 	std::string fail_reason;
 };
 
+void RegisterDetours(const HookFunctionParams* hooks, size_t count);
+void UnregisterDetours(const HookFunctionParams* hooks, size_t count);
+
 class DatafilePluginManager {
 public:
 	explicit DatafilePluginManager(const std::string& folder);

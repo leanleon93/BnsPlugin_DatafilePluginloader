@@ -119,7 +119,7 @@ DatafilePluginManager::DatafilePluginManager(const std::string& folder)
 		}
 	}
 	ImGuiPanelDesc desc = { "Plugin states", GlobalConfigUiPanel, nullptr };
-	_panelHandle = RegisterImGuiPanel(&desc);
+	_panelHandle = RegisterImGuiPanel(&desc, false);
 	ReloadAll();
 }
 
@@ -403,9 +403,13 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 		PluginInitParams params = {};
 		params.dataManager = g_DatafileService->GetDataManager();
 		params.oFind = &oFind_b8Wrapper;
+		params.getWorld = BNSClient_GetWorld;
+		params.displayGameMessage = &DisplayGameMessage;
 		params.registerImGuiPanel = &RegisterImGuiPanel;
 		params.unregisterImGuiPanel = &UnregisterImGuiPanel;
 		params.imgui = &g_imguiApi;
+		params.registerDetours = &RegisterDetours;
+		params.unregisterDetours = &UnregisterDetours;
 		handle->init(&params);
 	}
 	result = std::string(handle->identifier()) + " v" + handle->version();

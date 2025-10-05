@@ -20,5 +20,5 @@ void ImGuiManager_OnSwapchainResize();
 // For use in your present hook
 void ImGuiManager_OnPresent(IDXGISwapChain* pSwapChain, Present_t oPresent, IDXGISwapChain* swap, UINT sync, UINT flags);
 
-extern "C" __declspec(dllexport) int __stdcall RegisterImGuiPanel(const ImGuiPanelDesc* desc);
+extern "C" __declspec(dllexport) int __stdcall RegisterImGuiPanel(const ImGuiPanelDesc* desc, bool alwaysVisible);
 extern "C" __declspec(dllexport) void __stdcall UnregisterImGuiPanel(int handle);

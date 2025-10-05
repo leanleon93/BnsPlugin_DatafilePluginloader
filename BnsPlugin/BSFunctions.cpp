@@ -37,6 +37,16 @@ void BSMessaging::DisplayScrollingTextHeadline(void* GameWorld, _AddInstantNotif
 	SendGameMessage_s(GameWorld, oAddInstantNotification, text, L"", playSound ? L"00003805.Signal_UI.S_Sys_FindNewSpaceCue" : L"", 0, playSound, false, false, false, 0, L"");
 }
 
+void BSMessaging::DisplayScrollingTextHeadline2(void* GameWorld, _AddInstantNotification* oAddInstantNotification, const wchar_t* text, bool playSound)
+{
+	SendGameMessage_s(GameWorld, oAddInstantNotification, text, L"", playSound ? L"00003805.Signal_UI.S_Sys_FindNewSpaceCue" : L"", 0, playSound, true, false, false, 0, L"");
+}
+
+void BSMessaging::DisplayScrollingTextHeadlineBoss(void* GameWorld, _AddInstantNotification* oAddInstantNotification, const wchar_t* text, bool playSound)
+{
+	SendGameMessage_s(GameWorld, oAddInstantNotification, text, L"", playSound ? L"00003805.Signal_UI.S_Sys_FindNewSpaceCue" : L"", 0, playSound, false, true, false, 0, L"");
+}
+
 uintptr_t GetAddress(uintptr_t AddressOfCall, int index, int length)
 {
 	if (!AddressOfCall)

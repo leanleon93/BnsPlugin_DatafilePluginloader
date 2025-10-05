@@ -2,6 +2,8 @@
 #include "DrEl.h"
 #include <map>
 #include <iostream>
+#include <set>
+#include <vector>
 
 struct DataChunk
 {
@@ -170,3 +172,203 @@ namespace Data {
 	};
 }
 #pragma pack(pop)
+
+#pragma pack(push, 1)
+struct PartyMemberProperty
+{
+	char pad0[8];
+	__int64 hp;
+	char level;
+	char mastery_level;
+	__int16 x;
+	__int16 y;
+	__int16 z;
+	char pad1[2];
+	int geo_zone;
+	__int64 max_hp;
+	int max_hp_equip;
+	__int16 max_sp;
+	__int16 yaw;
+	char dead;
+	char faction;
+	char faction2;
+	char pad2[1];
+	int faction_score;
+	char hp_alert;
+	char pad3[7];
+	__int64 newbie_info_flag;
+	__int64 guard_gauge;
+	__int64 max_guard_gauge;
+	int max_guard_gauge_equip;
+	char pad4[6];
+};
+
+struct FWindowsPlatformTime {
+};
+
+struct PreciseTimer // sizeof=0x10
+{
+	unsigned __int64 _startTime;
+	FWindowsPlatformTime _timer;
+	char pad0[3];
+	float _limit;
+};
+struct Member {
+	int _memberKey;
+	char pad0[4];
+	unsigned __int64 _creatureId;
+	PartyMemberProperty _property;
+	void* _manager;
+	int _summonedDataId;
+	int _zoneChannel;
+	int _race;
+	int _job;
+	bool _inSight;
+	bool _login;
+	bool _banishAgreement;
+	char pad1[5];
+	/*std::vector<Member::MemberEffect> _memberEffectList;*/
+	char padMemberEffect[0x18];
+	PreciseTimer _logoutTimer;
+	std::wstring _name;
+	__int16 _worldId;
+	bool _changedDeadState;
+	char pad3[5];
+	PreciseTimer _deadStateTimer;
+	std::set<unsigned __int64> _aggroNormalNpcList;
+	unsigned __int64 _aggroBoss1NpcId;
+	unsigned __int64 _aggroBoss2NpcId;
+	unsigned __int64 _aggroBoss3NpcId;
+	unsigned __int64 _aggroBoss4NpcId;
+	unsigned __int64 _aggroSummonedId;
+	std::set<unsigned __int64> _summonedAggroNormalNpcList;
+	unsigned __int64 _summonedAggroBoss1NpcId;
+	unsigned __int64 _summonedAggroBoss2NpcId;
+	bool _comebackSession;
+	bool _reinforcement;
+	char _newbieCareDungeonList[20];
+	bool _newbieCareStae;
+	char pad6[1];
+};
+
+struct Party {
+	void* _vtbl;
+	unsigned __int64 _partyId;
+	//SimpleVector<Member*> _memberList;
+	std::vector<Member*> _memberList;
+};
+struct PTPlayer;
+struct Player {
+	char pad0[0x08];
+	unsigned __int64 id;
+	char pad1[0x08];
+	PTPlayer* _ptPlayer;
+	char pad2[0xE60 - 16 - 16];
+	Party* Party;
+};
+
+class World {
+public:
+	char unknown_0[0x50];
+	bool _activated;
+	bool _IsTerrainChanged;
+	bool _isTransit;
+	bool _isEnterWorld;
+	bool _isEnterZone;
+	bool _tryLeaveZone;
+	char _leaveReason;
+	char unknown_1[1];
+	short _worldId;
+	char unknown_2[6];
+	__int64 _zoneId;
+	int _geozoneId;
+	int _prevGeozoneId;
+	__int16 _arenaChatServerId;
+	char pad3[2];
+	int _clock;
+	char _pcCafeCode;
+	bool _isConnectedTestServer;
+	char pad4[2];
+	int _jackpotFaction1Score;
+	int _jackpotFaction2Score;
+	__int32 _keyboardModeConvertedResult;
+	char pad5[56];
+	Player* _player;
+	void* _playerSummoned;
+};
+
+#pragma pack(pop)
+
+struct PresentationObject;
+
+struct GameObject {
+	enum TYPE : int
+	{
+		GO_NONE = 0,
+		GO_PC = 1,
+		GO_SUMMONED = 2,
+		GO_PET = 3,
+		GO_ZONE_NPC = 4,
+		GO_ITEM = 8,
+		GO_ZONE = 16,
+		GO_ENV = 32,
+		GO_TEAM = 64,
+		GO_TEAM_PARTY = 65,
+		GO_PARTY = 128,
+		GO_FIELD_ITEM = 144,
+		GO_GATHER_SOURCE = 160,
+		GO_NPC_DEAD_BODY = 176,
+		GO_CAMPFIRE = 192,
+		GO_GUILD = 208,
+		GO_DUEL_BOT = 240,
+		GO_DUELBOT_SUMMONED = 241,
+		GO_DROPPED_POUCH = 242
+	};
+
+	void* vtptr;
+	unsigned __int64 id;
+	bool _inSight;
+	PresentationObject* _PTObject;
+};
+
+#pragma pack(push, 1)
+struct Npc : GameObject {
+	char padding[0xD68];
+	void* npcRecord; // BnsTables::EU::npc_Record* or BnsTables::KR::npc_Record* This is to avoid including BnsTables dependencies
+};
+
+const struct PresentationObject {
+	void* vfptr;
+	GameObject* _gameObject;
+};
+
+const struct PTCreature : PresentationObject {
+	char pad_0001[0x570 + 0x78];
+};
+
+struct PTControlledCreature : PTCreature {
+	unsigned __int64 _target;
+};
+
+struct PTPlayer : PTControlledCreature {
+	char pad5[0x3E50 + 0x88];
+	unsigned __int64 _lastTargetId;
+	char pad6[0xE0];
+	unsigned __int64 _targetBossObjectId_slot_1;
+	unsigned __int64 _targetBossObjectId_slot_2;
+	unsigned __int64 _targetBossObjectId_slot_3;
+	unsigned __int64 _targetBossObjectId_slot_4;
+};
+
+struct PresentationWorld {
+	char pad[0x50];
+	PTPlayer* _player;
+};
+#pragma pack(pop)
+
+enum class MessageType {
+	SystemChat,
+	ScrollingHeadline,
+	ScrollingHeadline2,
+	ScrollingHeadlineBoss
+};

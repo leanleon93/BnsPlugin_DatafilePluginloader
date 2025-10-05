@@ -193,6 +193,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <ControlFlowGuard>false</ControlFlowGuard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

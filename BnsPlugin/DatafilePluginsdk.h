@@ -7,6 +7,7 @@
 #include <string>
 #include "Data.h"
 #include "imgui_plugin_api.h"
+#include <cstdint>
 
 #ifdef _WIN32
 #define PLUGIN_EXPORT extern "C" __declspec(dllexport)
@@ -14,31 +15,46 @@
 #define PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
-constexpr int PLUGIN_API_VERSION = 9;
+constexpr int PLUGIN_API_VERSION = 10;
 
+// Define the HookFunction struct
+struct HookFunctionParams {
+	std::string pattern;
+	int offset;
+	void** originalFunction;
+	void* hookFunction;
+	std::string debugName;
+};
+
+using RegisterDetoursFunc = void(*)(const HookFunctionParams* hooks, size_t count);
+using UnregisterDetoursFunc = void(*)(const HookFunctionParams* hooks, size_t count);
+using BnsClient_GetWorldFunc = World * (__fastcall*)();
 
 struct PluginReturnData {
 	DrEl* drEl = nullptr;
 };
 
-using DisplaySystemChatMessageFunc = void(*)(const wchar_t*, bool);
+using DisplayGameMessageFunc = void(*)(const wchar_t* message, bool playSound, MessageType type);
 
 struct PluginParamsBase {
 	Data::DataManager* dataManager = nullptr;
 	DrEl* (__fastcall* oFind)(DrMultiKeyTable* thisptr, unsigned __int64 key) = nullptr;
+	BnsClient_GetWorldFunc getWorld = nullptr;
+	DisplayGameMessageFunc displayGameMessage = nullptr;
 };
 
 struct PluginExecuteParams : PluginParamsBase {
 
 	DrMultiKeyTable* table = nullptr;
 	unsigned __int64 key = 0;
-	DisplaySystemChatMessageFunc displaySystemChatMessage = nullptr;
 };
 
 struct PluginInitParams : PluginParamsBase {
 	RegisterImGuiPanelFn registerImGuiPanel = nullptr;
 	UnregisterImGuiPanelFn unregisterImGuiPanel = nullptr;
 	PluginImGuiAPI* imgui = nullptr;
+	RegisterDetoursFunc registerDetours = nullptr;
+	UnregisterDetoursFunc unregisterDetours = nullptr;
 };
 
 struct PluginTableHandler {
@@ -270,7 +286,7 @@ inline bool IsVersionCompatible(PluginExecuteParams* params, GetVersionInfoFunc 
 			msg += L"<br /> Compiled: " + std::to_wstring(compiledVersion.major) + L"." + std::to_wstring(compiledVersion.minor);
 			msg += L"<br /> Game: " + std::to_wstring(gameTableVersion.major_ver) + L"." + std::to_wstring(gameTableVersion.minor_ver);
 			msg += L"<br /> Plugin functionality for this table will be disabled.";
-			params->displaySystemChatMessage(msg.c_str(), false);
+			params->displayGameMessage(msg.c_str(), false, MessageType::SystemChat);
 		}
 
 		it = versionCompatibleMap.find(params->table->_tabledef->type);

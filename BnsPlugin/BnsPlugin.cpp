@@ -134,6 +134,32 @@ static __int64* HookDataManager(const char* pattern, int offset2) {
 	return nullptr;
 }
 
+void RegisterDetours(const HookFunctionParams* hooks, size_t count) {
+	DetourTransactionBegin();
+	DetourUpdateThread(NtCurrentThread());
+	for (size_t i = 0; i < count; ++i) {
+		auto& hook = hooks[i];
+		HookFunction(
+			hook.pattern.c_str(),
+			hook.offset,
+			*hook.originalFunction,
+			hook.hookFunction,
+			hook.debugName.c_str()
+		);
+	}
+	DetourTransactionCommit();
+}
+
+void UnregisterDetours(const HookFunctionParams* hooks, size_t count) {
+	DetourTransactionBegin();
+	DetourUpdateThread(NtCurrentThread());
+	for (size_t i = 0; i < count; ++i) {
+		auto& hook = hooks[i];
+		// Detach the hook
+		DetourDetach(reinterpret_cast<PVOID*>(hook.originalFunction), hook.hookFunction);
+	}
+	DetourTransactionCommit();
+}
 
 static __int64* InitDetours() {
 #ifdef _DEBUG

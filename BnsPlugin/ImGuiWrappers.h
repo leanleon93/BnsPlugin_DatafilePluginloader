@@ -60,12 +60,120 @@ static void ImGui_OpenPopup_Wrapper(const char* str_id) {
 static bool ImGui_BeginPopup_Wrapper(const char* str_id) {
 	return ImGui::BeginPopup(str_id);
 }
-static bool ImGui_Begin_Wrapper(const char* name, bool* p_open) {
-	return ImGui::Begin(name, p_open);
+static bool ImGui_Begin_Wrapper(const char* name, bool* p_open, int windowFlags) {
+	return ImGui::Begin(name, p_open, windowFlags);
 }
 static void ImGui_Dummy_Wrapper(float w, float h) {
 	ImGui::Dummy(ImVec2(w, h));
 }
+static void ImGui_SetNextWindowSize_Wrapper(float w, float h, int cond) {
+	ImGui::SetNextWindowSize(ImVec2(w, h), cond);
+}
+
+static void ImGui_SetNextWindowPos_Wrapper(float x, float y, int cond) {
+	ImGui::SetNextWindowPos(ImVec2(x, y), cond);
+}
+
+static void ImGui_SetCursorPos_Wrapper(float x, float y) {
+	ImGui::SetCursorPos(ImVec2(x, y));
+}
+static ImFont* betterFont = nullptr;
+
+static void DisplayTextInCenter_Impl(const char* text, float fontSize, unsigned int color, float xOffset = 0.0f, float yOffset = 0.0f, std::string fontPath = "") {
+	if (!text) return;
+	ImGuiIO& io = ImGui::GetIO();
+	if (betterFont == nullptr && !fontPath.empty()) {
+		betterFont = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 18.0f);
+	}
+	ImFont* font = betterFont ? betterFont : ImGui::GetFont();
+	float defaultFontSize = ImGui::GetFontSize();
+	if (!font) return;
+	if (fontSize <= 0.0f) fontSize = defaultFontSize;
+
+	ImVec2 textSize = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, text);
+	ImVec2 pos(
+		(io.DisplaySize.x - textSize.x) * 0.5f + xOffset,
+		(io.DisplaySize.y - textSize.y) * 0.5f + yOffset
+	);
+	ImGui::GetForegroundDrawList()->AddText(font, fontSize, pos, color, text);
+}
+
+static void DisplayProgressBarInCenter_Impl(
+	float progress,
+	const char* label,
+	const char* countdown,
+	float barWidth,
+	float barHeight,
+	float fontSize,
+	unsigned int /*color, ignored, we use our own*/,
+	float xOffset = 0.0f,
+	float yOffset = 0.0f,
+	std::string fontPath = ""
+) {
+	ImGuiIO& io = ImGui::GetIO();
+	if (betterFont == nullptr && !fontPath.empty()) {
+		betterFont = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 18.0f);
+	}
+	ImFont* font = betterFont ? betterFont : ImGui::GetFont();
+	float defaultFontSize = ImGui::GetFontSize();
+	if (!font) return;
+	if (fontSize <= 0.0f) fontSize = defaultFontSize;
+
+	// Position at the screen center, with offsets
+	float x = (io.DisplaySize.x - barWidth) * 0.5f + xOffset;
+	float y = (io.DisplaySize.y - barHeight) * 0.5f + yOffset;
+	ImVec2 barPos(x, y);
+	ImVec2 barEnd(x + barWidth, y + barHeight);
+
+	ImDrawList* drawList = ImGui::GetForegroundDrawList();
+
+	// Colors
+	ImU32 bgColor = IM_COL32(24, 28, 36, 220);      // dark background
+	ImU32 fillColor = IM_COL32(80, 180, 255, 255);  // light blue fill
+	ImU32 borderColor = IM_COL32(60, 80, 120, 255); // border
+	ImU32 textColor = IM_COL32(240, 240, 255, 255); // bright text for inside bar
+	ImU32 textShadow = IM_COL32(0, 0, 0, 120);      // subtle shadow
+
+	float rounding = 0.0f; // No rounding for sharp corners
+
+	// Draw bar background
+	drawList->AddRectFilled(barPos, barEnd, bgColor, rounding);
+
+	// Draw bar fill
+	ImVec2 fillEnd(barPos.x + barWidth * progress, barEnd.y);
+	if (progress > 0.0f) {
+		drawList->AddRectFilled(barPos, fillEnd, fillColor, rounding);
+	}
+
+	// Draw border
+	drawList->AddRect(barPos, barEnd, borderColor, rounding, 0, 2.0f);
+
+	// Calculate text sizes
+	ImVec2 labelSize(0, 0), countdownSize(0, 0);
+	if (label && *label) labelSize = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, label);
+	if (countdown && *countdown) countdownSize = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, countdown);
+
+	// Vertically center the text in the bar
+	float textY = y + (barHeight - labelSize.y) * 0.5f;
+
+	// Padding from left/right edges
+	const float sidePadding = 12.0f;
+
+	// Draw label (left side)
+	if (label && *label) {
+		ImVec2 labelPos(x + sidePadding, textY);
+		drawList->AddText(font, fontSize, ImVec2(labelPos.x + 1, labelPos.y + 1), textShadow, label);
+		drawList->AddText(font, fontSize, labelPos, textColor, label);
+	}
+
+	// Draw countdown (right side)
+	if (countdown && *countdown) {
+		ImVec2 cdPos(x + barWidth - countdownSize.x - sidePadding, textY);
+		drawList->AddText(font, fontSize, ImVec2(cdPos.x + 1, cdPos.y + 1), textShadow, countdown);
+		drawList->AddText(font, fontSize, cdPos, textColor, countdown);
+	}
+}
+
 PluginImGuiAPI g_imguiApi = {
 	&ImGui::Text,
 	&ImGui_TextColored_Wrapper,
@@ -103,6 +211,12 @@ PluginImGuiAPI g_imguiApi = {
 	&ImGui::Unindent,
 	&ImGui::PushID,
 	&ImGui::PushID,
-	&ImGui::PopID
+	&ImGui::PopID,
+	&ImGui_SetNextWindowSize_Wrapper,
+	&ImGui_SetNextWindowPos_Wrapper,
+	&ImGui::SetWindowFontScale,
+	&ImGui_SetCursorPos_Wrapper,
+	&DisplayTextInCenter_Impl,
+	&DisplayProgressBarInCenter_Impl
 };
 #pragma endregion

@@ -21,16 +21,17 @@ struct PanelEntry {
 	std::string name;
 	ImGuiPanelRenderFn fn;
 	void* userData;
+	bool alwaysVisible = false;
 };
 static std::map<int, PanelEntry> g_Panels;
 static int g_NextPanelId = 1;
 static std::mutex g_PanelsMutex;
 
 extern "C" __declspec(dllexport)
-int __stdcall RegisterImGuiPanel(const ImGuiPanelDesc* desc) {
+int __stdcall RegisterImGuiPanel(const ImGuiPanelDesc* desc, bool alwaysVisible = false) {
 	std::lock_guard<std::mutex> lock(g_PanelsMutex);
 	int id = g_NextPanelId++;
-	g_Panels[id] = { desc->name, desc->renderFn, desc->userData };
+	g_Panels[id] = { desc->name, desc->renderFn, desc->userData, alwaysVisible };
 	return id;
 }
 
@@ -188,19 +189,39 @@ void ImGuiManager_Render()
 		do_reload = false;
 	}
 
-	if (!g_ImGuiPanelVisible)
-		return;
-
 	std::lock_guard<std::mutex> lock(g_PanelsMutex);
-	ImGui::Begin("Datafile Plugins", &g_ImGuiPanelVisible);
+
 	for (auto& [id, entry] : g_Panels) {
-		ImGui::PushID(id);
-		if (ImGui::CollapsingHeader(entry.name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (entry.alwaysVisible) {
 			SafePanelCall(entry.fn, entry.userData, entry.name);
 		}
-		ImGui::PopID();
 	}
-	ImGui::End();
+
+	if (g_ImGuiPanelVisible) {
+		ImGui::Begin("Datafile Plugins", &g_ImGuiPanelVisible);
+		for (auto& [id, entry] : g_Panels) {
+			if (!entry.alwaysVisible) {
+				ImGui::PushID(id);
+				if (ImGui::CollapsingHeader(entry.name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+					SafePanelCall(entry.fn, entry.userData, entry.name);
+				}
+				ImGui::PopID();
+			}
+		}
+		ImGui::End();
+	}
+
+	//count g_Panels with alwaysVisible
+	int alwaysVisibleCount = std::count_if(
+		g_Panels.begin(), g_Panels.end(),
+		[](const std::pair<const int, PanelEntry>& pair) {
+			return pair.second.alwaysVisible;
+		}
+	);
+	if (alwaysVisibleCount == 0 && !g_ImGuiPanelVisible) {
+		// No panels to show, skip rendering
+		return;
+	}
 
 	ImGui::Render();
 	g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
@@ -269,15 +290,12 @@ void ImGuiManager_OnPresent(IDXGISwapChain* pSwapChain, Present_t oPresent, IDXG
 		ImGuiManager_Init(g_hWnd, g_pd3dDevice, g_pd3dDeviceContext);
 	}
 
-	// Only do ImGui work if the panel is visible
-	if (g_ImGuiPanelVisible)
-	{
-		CreateRenderTarget(pSwapChain);
-		ImGui_ImplDX11_CreateDeviceObjects();
 
-		ImGuiManager_NewFrame();
-		ImGuiManager_Render();
-	}
+	CreateRenderTarget(pSwapChain);
+	ImGui_ImplDX11_CreateDeviceObjects();
+
+	ImGuiManager_NewFrame();
+	ImGuiManager_Render();
 
 	oPresent(swap, sync, flags);
 }
