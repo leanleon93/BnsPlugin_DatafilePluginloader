@@ -197,7 +197,7 @@ static void __fastcall Init(PluginInitParams* params) {
 		g_register = params->registerImGuiPanel;
 		g_unregister = params->unregisterImGuiPanel;
 		ImGuiPanelDesc desc = { "ExampleDatafilePlugin Panel", MyTestPanel, nullptr };
-		g_panelHandle = g_register(&desc);
+		g_panelHandle = g_register(&desc, false);
 	}
 	if (params && params->dataManager) {
 		auto item100Key = BnsTables::EU::item_Record::Key{};
@@ -252,6 +252,6 @@ PluginTableHandler handlers[] = {
 
 DEFINE_PLUGIN_API_VERSION()
 DEFINE_PLUGIN_IDENTIFIER("ExampleDatafilePlugin")
-DEFINE_PLUGIN_VERSION("3.1.0")
+DEFINE_PLUGIN_VERSION("3.1.1")
 DEFINE_PLUGIN_INIT(Init, Unregister)
 DEFINE_PLUGIN_TABLE_HANDLERS(handlers)
