@@ -192,7 +192,7 @@ void ImGuiManager_Render()
 		return;
 
 	std::lock_guard<std::mutex> lock(g_PanelsMutex);
-	ImGui::Begin("Datfile Plugins", &g_ImGuiPanelVisible);
+	ImGui::Begin("Datafile Plugins", &g_ImGuiPanelVisible);
 	for (auto& [id, entry] : g_Panels) {
 		ImGui::PushID(id);
 		if (ImGui::CollapsingHeader(entry.name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
