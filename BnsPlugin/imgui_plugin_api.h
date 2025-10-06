@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 // Callback signature for UI panels
 typedef void (*ImGuiPanelRenderFn)(void* userData);
@@ -10,7 +11,7 @@ struct ImGuiPanelDesc {
 };
 
 // Function pointer types for registration
-typedef int(__stdcall* RegisterImGuiPanelFn)(const ImGuiPanelDesc* desc);
+typedef int(__stdcall* RegisterImGuiPanelFn)(const ImGuiPanelDesc* desc, bool alwaysVisible);
 typedef void(__stdcall* UnregisterImGuiPanelFn)(int handle);
 
 //define controls and widgets you want to expose to plugins so the plugins dont have to link against imgui directly
@@ -62,7 +63,7 @@ struct PluginImGuiAPI {
 	bool (*IsItemHovered)(int flags);
 
 	// Windows
-	bool (*Begin)(const char* name, bool* p_open);
+	bool (*Begin)(const char* name, bool* p_open, int windowFlags);
 	void (*End)();
 
 	// Misc
@@ -73,4 +74,23 @@ struct PluginImGuiAPI {
 	void (*PushId)(const char* str_id);
 	void (*PushIdInt)(int int_id);
 	void (*PopId)();
+
+	void (*SetNextWindowSize)(float width, float height, int cond);
+	void (*SetNextWindowPos)(float x, float y, int cond);
+	void (*SetWindowFontScale)(float scale);
+	void (*SetCursorPos)(float x, float y);
+
+	void (*DisplayTextInCenter)(const char* text, float fontSize, unsigned int color, float xOffset, float yOffset, bool outline, std::string fontPath);
+	void (*DisplayProgressBarInCenter)(
+		float progress,
+		const char* label,
+		const char* countdown,
+		float barWidth,
+		float barHeight,
+		float fontSize,
+		unsigned int color,
+		float xOffset,
+		float yOffset,
+		std::string fontPath
+		);
 };
