@@ -267,6 +267,7 @@ struct Player {
 	Party* Party;
 };
 
+struct GameObject;
 class World {
 public:
 	char unknown_0[0x50];
@@ -295,6 +296,17 @@ public:
 	char pad5[56];
 	Player* _player;
 	void* _playerSummoned;
+	/*char _creatureSquadPad[0x10];
+	char _creatureChildSquadPad[0x10];*/
+	std::map<__int64, std::vector<__int64>> _creatureSquad;
+	std::map<__int64, __int64> _creatureChildSquad;
+	void* _convoy;
+	void* _closetGroup;
+	void* _chatInput;
+	void* _gameTip;
+	void* _notificationCenter;
+	void* _personalCustomize;
+	std::map<unsigned __int64, GameObject*> _mgr;
 };
 
 #pragma pack(pop)
@@ -324,17 +336,31 @@ struct GameObject {
 		GO_DUELBOT_SUMMONED = 241,
 		GO_DROPPED_POUCH = 242
 	};
-
 	void* vtptr;
 	unsigned __int64 id;
 	bool _inSight;
 	PresentationObject* _PTObject;
 };
 
+static GameObject::TYPE GetGameObjectType(unsigned __int64 id) {
+	// Extract bits 48-63 (the upper 2 bytes of id)
+	return static_cast<GameObject::TYPE>((id >> 48) & 0xFFFF);
+}
+static GameObject::TYPE GetGameObjectType(GameObject* gameObject) {
+	return GetGameObjectType(gameObject->id);
+}
+
+struct Creature : GameObject {
+	char pad[0xB0];
+	__int64 hp;
+};
+
 #pragma pack(push, 1)
-struct Npc : GameObject {
-	char padding[0xD68];
+struct Npc : Creature {
+	char padding[0xCD0];
 	void* npcRecord; // BnsTables::EU::npc_Record* or BnsTables::KR::npc_Record* This is to avoid including BnsTables dependencies
+	char pad2[0x40 - 0x08];
+	__int64 _finalHp;
 };
 
 const struct PresentationObject {

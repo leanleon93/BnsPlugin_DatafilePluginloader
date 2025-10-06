@@ -91,6 +91,7 @@ struct PluginImGuiAPI {
 		unsigned int color,
 		float xOffset,
 		float yOffset,
+		bool outline,
 		std::string fontPath
 		);
 };
