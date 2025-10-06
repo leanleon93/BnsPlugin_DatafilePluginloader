@@ -79,7 +79,7 @@ static void ImGui_SetCursorPos_Wrapper(float x, float y) {
 }
 static ImFont* betterFont = nullptr;
 
-static void DisplayTextInCenter_Impl(const char* text, float fontSize, unsigned int color, float xOffset = 0.0f, float yOffset = 0.0f, std::string fontPath = "") {
+static void DisplayTextInCenter_Impl(const char* text, float fontSize, unsigned int color, float xOffset = 0.0f, float yOffset = 0.0f, bool outline = true, std::string fontPath = "") {
 	if (!text) return;
 	ImGuiIO& io = ImGui::GetIO();
 	if (betterFont == nullptr && !fontPath.empty()) {
@@ -95,7 +95,21 @@ static void DisplayTextInCenter_Impl(const char* text, float fontSize, unsigned 
 		(io.DisplaySize.x - textSize.x) * 0.5f + xOffset,
 		(io.DisplaySize.y - textSize.y) * 0.5f + yOffset
 	);
-	ImGui::GetForegroundDrawList()->AddText(font, fontSize, pos, color, text);
+
+	ImDrawList* drawList = ImGui::GetForegroundDrawList();
+	ImU32 outlineColor = IM_COL32(0, 0, 0, 255); // Black outline
+	const float outlineThickness = 1.5f;
+
+	// Draw outline (8 directions)
+	if (outline)
+		for (int dx = -1; dx <= 1; ++dx) {
+			for (int dy = -1; dy <= 1; ++dy) {
+				if (dx == 0 && dy == 0) continue;
+				drawList->AddText(font, fontSize, ImVec2(pos.x + dx * outlineThickness, pos.y + dy * outlineThickness), outlineColor, text);
+			}
+		}
+	// Draw main text
+	drawList->AddText(font, fontSize, pos, color, text);
 }
 
 static void DisplayProgressBarInCenter_Impl(

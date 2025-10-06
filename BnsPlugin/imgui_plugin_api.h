@@ -80,7 +80,7 @@ struct PluginImGuiAPI {
 	void (*SetWindowFontScale)(float scale);
 	void (*SetCursorPos)(float x, float y);
 
-	void (*DisplayTextInCenter)(const char* text, float fontSize, unsigned int color, float xOffset, float yOffset, std::string fontPath);
+	void (*DisplayTextInCenter)(const char* text, float fontSize, unsigned int color, float xOffset, float yOffset, bool outline, std::string fontPath);
 	void (*DisplayProgressBarInCenter)(
 		float progress,
 		const char* label,

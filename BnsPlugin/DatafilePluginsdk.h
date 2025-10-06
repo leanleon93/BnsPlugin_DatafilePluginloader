@@ -15,7 +15,7 @@
 #define PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
-constexpr int PLUGIN_API_VERSION = 10;
+constexpr int PLUGIN_API_VERSION = 11;
 
 // Define the HookFunction struct
 struct HookFunctionParams {
