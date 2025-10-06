@@ -203,7 +203,8 @@ std::vector<std::string> DatafilePluginManager::ReloadAll() {
 	std::vector<std::string> results;
 	// Remove all plugin handles so they will be forcibly loaded next time
 	//UnloadPlugins();
-
+	_table_compare_cache.clear();
+	_table_plugin_cache.clear();
 	for (const auto& entry : fs::directory_iterator(_plugins_folder)) {
 		if (entry.path().extension() == ".dll") {
 			if (auto res = ReloadPluginIfChanged(entry.path().string()); !res.empty()) {
@@ -360,7 +361,7 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 	auto tableHandlersFunc = reinterpret_cast<PluginTableHandlersFunc>(GetProcAddress(dll, "PluginTableHandlers"));
 	auto tableHandlerCountFunc = reinterpret_cast<PluginTableHandlerCountFunc>(GetProcAddress(dll, "PluginTableHandlerCount"));
 
-	if (!(identifier && api_version && plugin_version && tableHandlersFunc && tableHandlerCountFunc)) {
+	if (!(identifier && api_version && plugin_version)) {
 		std::cerr << "Error: Missing required exports in " << plugin_path << "\n";
 		FreeLibrary(dll);
 		std::error_code ec; fs::remove(shadow_path, ec);
@@ -384,12 +385,17 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 
 	// success path
 	handle->dll = dll;
-	size_t count = tableHandlerCountFunc();
-	const PluginTableHandler* handlers = tableHandlersFunc();
-	if (handlers && count > 0) {
+	if (tableHandlersFunc && tableHandlerCountFunc) {
+		size_t count = tableHandlerCountFunc();
+		const PluginTableHandler* handlers = tableHandlersFunc();
+		if (handlers && count > 0) {
+			handle->tableHandlers.clear();
+			handle->tableHandlers.reserve(count);
+			for (size_t i = 0; i < count; ++i) handle->tableHandlers.push_back(&handlers[i]);
+		}
+	}
+	else {
 		handle->tableHandlers.clear();
-		handle->tableHandlers.reserve(count);
-		for (size_t i = 0; i < count; ++i) handle->tableHandlers.push_back(&handlers[i]);
 	}
 	handle->init = init;
 	handle->unregister = unregister;

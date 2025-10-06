@@ -122,6 +122,7 @@ static void DisplayProgressBarInCenter_Impl(
 	unsigned int /*color, ignored, we use our own*/,
 	float xOffset = 0.0f,
 	float yOffset = 0.0f,
+	bool outline = true,
 	std::string fontPath = ""
 ) {
 	ImGuiIO& io = ImGui::GetIO();
@@ -142,13 +143,14 @@ static void DisplayProgressBarInCenter_Impl(
 	ImDrawList* drawList = ImGui::GetForegroundDrawList();
 
 	// Colors
-	ImU32 bgColor = IM_COL32(24, 28, 36, 220);      // dark background
-	ImU32 fillColor = IM_COL32(80, 180, 255, 255);  // light blue fill
-	ImU32 borderColor = IM_COL32(60, 80, 120, 255); // border
-	ImU32 textColor = IM_COL32(240, 240, 255, 255); // bright text for inside bar
-	ImU32 textShadow = IM_COL32(0, 0, 0, 120);      // subtle shadow
+	ImU32 bgColor = IM_COL32(36, 43, 49, 160);         // dark gray, more transparent
+	ImU32 fillColor = IM_COL32(255, 231, 131, 255);    // pale yellow fill
+	ImU32 borderBlack = IM_COL32(11, 12, 18, 255);        // black inner border
+	ImU32 borderWhite = IM_COL32(255, 255, 255, 160);  // white outer border, slightly transparent
+	ImU32 textColor = IM_COL32(255, 255, 255, 255);    // white text
+	ImU32 outlineColor = IM_COL32(0, 0, 0, 255);       // black outline
 
-	float rounding = 0.0f; // No rounding for sharp corners
+	float rounding = 0.0f; // sharp corners
 
 	// Draw bar background
 	drawList->AddRectFilled(barPos, barEnd, bgColor, rounding);
@@ -159,32 +161,47 @@ static void DisplayProgressBarInCenter_Impl(
 		drawList->AddRectFilled(barPos, fillEnd, fillColor, rounding);
 	}
 
-	// Draw border
-	drawList->AddRect(barPos, barEnd, borderColor, rounding, 0, 2.0f);
-
-	// Calculate text sizes
-	ImVec2 labelSize(0, 0), countdownSize(0, 0);
-	if (label && *label) labelSize = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, label);
-	if (countdown && *countdown) countdownSize = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, countdown);
-
-	// Vertically center the text in the bar
-	float textY = y + (barHeight - labelSize.y) * 0.5f;
-
-	// Padding from left/right edges
-	const float sidePadding = 12.0f;
-
-	// Draw label (left side)
+	// Draw bicolor border: black inner, white outer (fading)
+	float borderThickness = 1.0f;
+	float outerBorderThickness = 2.5f;
+	// Black inner border
+	drawList->AddRect(barPos, barEnd, borderBlack, rounding, 0, borderThickness);
+	// White outer border (slightly outside, faded)
+	ImVec2 outerExpand(outerBorderThickness, outerBorderThickness);
+	ImVec2 outerBarPos(barPos.x - outerBorderThickness, barPos.y - outerBorderThickness);
+	ImVec2 outerBarEnd(barEnd.x + outerBorderThickness, barEnd.y + outerBorderThickness);
+	drawList->AddRect(outerBarPos, outerBarEnd, borderWhite, rounding, 0, 1.5f);
+	// Draw label above bar, left-aligned, with outline
 	if (label && *label) {
-		ImVec2 labelPos(x + sidePadding, textY);
-		drawList->AddText(font, fontSize, ImVec2(labelPos.x + 1, labelPos.y + 1), textShadow, label);
+		ImVec2 labelSize = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, label);
+		ImVec2 labelPos(x, y - labelSize.y - 2.0f);
+		// Outline (8 directions)
+		if (outline)
+			for (int dx = -1; dx <= 1; ++dx) {
+				for (int dy = -1; dy <= 1; ++dy) {
+					if (dx == 0 && dy == 0) continue;
+					drawList->AddText(font, fontSize, ImVec2(labelPos.x + dx, labelPos.y + dy), outlineColor, label);
+				}
+			}
 		drawList->AddText(font, fontSize, labelPos, textColor, label);
 	}
 
-	// Draw countdown (right side)
+	// Draw countdown text centered in bar, with outline
 	if (countdown && *countdown) {
-		ImVec2 cdPos(x + barWidth - countdownSize.x - sidePadding, textY);
-		drawList->AddText(font, fontSize, ImVec2(cdPos.x + 1, cdPos.y + 1), textShadow, countdown);
-		drawList->AddText(font, fontSize, cdPos, textColor, countdown);
+		ImVec2 textSize = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, countdown);
+		ImVec2 textPos(
+			x + (barWidth - textSize.x) * 0.5f,
+			y + (barHeight - textSize.y) * 0.5f
+		);
+		// Outline (8 directions)
+		if (outline)
+			for (int dx = -1; dx <= 1; ++dx) {
+				for (int dy = -1; dy <= 1; ++dy) {
+					if (dx == 0 && dy == 0) continue;
+					drawList->AddText(font, fontSize, ImVec2(textPos.x + dx, textPos.y + dy), outlineColor, countdown);
+				}
+			}
+		drawList->AddText(font, fontSize, textPos, textColor, countdown);
 	}
 }
 
