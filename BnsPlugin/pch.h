@@ -9,7 +9,9 @@
 
 // add headers that you want to pre-compile here
 #define WIN32_LEAN_AND_MEAN
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #define RPC_USE_NATIVE_WCHAR
 #include <phnt/phnt_windows.h>
 #include <phnt/phnt.h>

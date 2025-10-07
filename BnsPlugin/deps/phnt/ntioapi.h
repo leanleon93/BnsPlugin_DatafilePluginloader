@@ -762,22 +762,6 @@ typedef struct _FILE_ID_EXTD_BOTH_DIR_INFORMATION
 } FILE_ID_EXTD_BOTH_DIR_INFORMATION, *PFILE_ID_EXTD_BOTH_DIR_INFORMATION;
 
 // private
-typedef struct _FILE_STAT_INFORMATION
-{
-    LARGE_INTEGER FileId;
-    LARGE_INTEGER CreationTime;
-    LARGE_INTEGER LastAccessTime;
-    LARGE_INTEGER LastWriteTime;
-    LARGE_INTEGER ChangeTime;
-    LARGE_INTEGER AllocationSize;
-    LARGE_INTEGER EndOfFile;
-    ULONG FileAttributes;
-    ULONG ReparseTag;
-    ULONG NumberOfLinks;
-    ULONG EffectiveAccess;
-} FILE_STAT_INFORMATION, *PFILE_STAT_INFORMATION;
-
-// private
 typedef struct _FILE_MEMORY_PARTITION_INFORMATION
 {
     HANDLE OwnerPartitionHandle;
@@ -791,34 +775,6 @@ typedef struct _FILE_MEMORY_PARTITION_INFORMATION
         ULONG AllFlags;
     } Flags;
 } FILE_MEMORY_PARTITION_INFORMATION, *PFILE_MEMORY_PARTITION_INFORMATION;
-
-// private
-typedef struct _FILE_STAT_LX_INFORMATION
-{
-    LARGE_INTEGER FileId;
-    LARGE_INTEGER CreationTime;
-    LARGE_INTEGER LastAccessTime;
-    LARGE_INTEGER LastWriteTime;
-    LARGE_INTEGER ChangeTime;
-    LARGE_INTEGER AllocationSize;
-    LARGE_INTEGER EndOfFile;
-    ULONG FileAttributes;
-    ULONG ReparseTag;
-    ULONG NumberOfLinks;
-    ULONG EffectiveAccess;
-    ULONG LxFlags;
-    ULONG LxUid;
-    ULONG LxGid;
-    ULONG LxMode;
-    ULONG LxDeviceIdMajor;
-    ULONG LxDeviceIdMinor;
-} FILE_STAT_LX_INFORMATION, *PFILE_STAT_LX_INFORMATION;
-
-// private
-typedef struct _FILE_CASE_SENSITIVE_INFORMATION
-{
-    ULONG Flags;
-} FILE_CASE_SENSITIVE_INFORMATION, *PFILE_CASE_SENSITIVE_INFORMATION;
 
 // NtQueryDirectoryFile types
 
