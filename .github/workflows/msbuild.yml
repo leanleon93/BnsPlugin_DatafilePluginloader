@@ -29,8 +29,6 @@ jobs:
     - uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        submodules: recursive
-        fetch-depth: 0
 
     - name: Set up Git identity
       run: |
@@ -81,7 +79,7 @@ jobs:
     - name: Verify DLL built
       id: verify_dll
       run: |
-        if [ ! -f "bin/BnsPlugin/ReleaseEUX64/DatafilePluginloader.dll" ]; then
+        if [ ! -f "BnsPlugin/bin/BnsPlugin/ReleaseEUX64/DatafilePluginloader.dll" ]; then
           echo "DLL not found! Build failed or wrong path."
           exit 1
         fi
@@ -95,7 +93,7 @@ jobs:
 
     - name: Set DLL path output
       id: find_dll
-      run: echo "dll_path=bin/BnsPlugin/ReleaseEUX64/DatafilePluginloader.dll" >> $GITHUB_OUTPUT
+      run: echo "dll_path=BnsPlugin/bin/BnsPlugin/ReleaseEUX64/DatafilePluginloader.dll" >> $GITHUB_OUTPUT
       shell: bash
       
     - name: Generate release notes
