@@ -51,7 +51,6 @@ private:
 	[[nodiscard]] std::string CopyToShadow(std::string_view plugin_path) const;
 	void ensure_shadow_dir() const;
 	[[nodiscard]] static std::string get_temp_shadow_dir(const std::string& app_name);
-	int _panelHandle = 0;
 };
 
 extern std::unique_ptr<DatafilePluginManager> g_DatafilePluginManager;

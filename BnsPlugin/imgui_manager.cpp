@@ -177,6 +177,35 @@ static void CreateRenderTarget(IDXGISwapChain* pSwapChain)
 	}
 }
 
+static void GlobalConfigUiPanel(void* userData) {
+	auto stateTexts = g_DatafilePluginManager ? g_DatafilePluginManager->GetPluginStateText() : std::vector<std::string>{ "Plugin manager not initialized." };
+	for (const auto& line : stateTexts) {
+		if (line.find("[Failed]") == 0) {
+			ImGui::TextColored({ 1.0f, 0.2f, 0.2f, 1.0f }, "%s", line.c_str());
+		}
+		else if (line.find("[Loaded]") == 0) {
+			ImGui::TextColored({ 0.2f, 1.0f, 0.2f, 1.0f }, "%s", line.c_str());
+		}
+		else {
+			ImGui::Text("%s", line.c_str());
+		}
+	}
+	if (stateTexts.empty()) {
+		ImGui::Text("No plugins loaded.");
+	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	if (ImGui::Button("Reload plugins")) {
+		do_reload = true;
+	}
+
+	ImGui::Spacing();
+	ImGui::TextDisabled("Use this button to reload plugins without restarting the game.");
+}
+
 void ImGuiManager_Render()
 {
 	if (!g_pd3dDevice || !g_pd3dDeviceContext || !g_mainRenderTargetView) {
@@ -198,7 +227,11 @@ void ImGuiManager_Render()
 	}
 
 	if (g_ImGuiPanelVisible) {
-		ImGui::Begin("Datafile Plugins", &g_ImGuiPanelVisible);
+		ImGui::Begin("Datafile Plugins", &g_ImGuiPanelVisible, ImGuiWindowFlags_NoCollapse);
+		if (ImGui::CollapsingHeader("Plugin Status", ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_DefaultOpen)) {
+			GlobalConfigUiPanel(nullptr);
+		}
+		ImGui::Spacing();
 		for (auto& [id, entry] : g_Panels) {
 			if (!entry.alwaysVisible) {
 				ImGui::PushID(id);

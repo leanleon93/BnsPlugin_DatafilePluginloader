@@ -73,35 +73,6 @@ std::string DatafilePluginManager::CopyToShadow(std::string_view plugin_path) co
 }
 extern bool do_reload;
 
-static void GlobalConfigUiPanel(void* userData) {
-	auto stateTexts = g_DatafilePluginManager ? g_DatafilePluginManager->GetPluginStateText() : std::vector<std::string>{ "Plugin manager not initialized." };
-	for (const auto& line : stateTexts) {
-		if (line.find("[Failed]") == 0) {
-			ImGuiWrapper_TextColored(1.0f, 0.2f, 0.2f, 1.0f, "%s", line.c_str());
-		}
-		else if (line.find("[Loaded]") == 0) {
-			ImGuiWrapper_TextColored(0.2f, 1.0f, 0.2f, 1.0f, "%s", line.c_str());
-		}
-		else {
-			ImGui::Text("%s", line.c_str());
-		}
-	}
-	if (stateTexts.empty()) {
-		ImGui::Text("No plugins loaded.");
-	}
-
-	ImGui::Spacing();
-	ImGui::Separator();
-	ImGui::Spacing();
-
-	if (ImGui::Button("Reload plugins")) {
-		do_reload = true;
-	}
-
-	ImGui::Spacing();
-	ImGui::TextDisabled("Use this button to reload plugins without restarting the game.");
-}
-
 DatafilePluginManager::DatafilePluginManager(const std::string& folder)
 	: _plugins_folder(folder), _shadow_dir_path(get_temp_shadow_dir(PLUGINLOADER_IDENTIFIER)) {
 	if (!fs::exists(_plugins_folder) || !fs::is_directory(_plugins_folder)) {
@@ -113,17 +84,11 @@ DatafilePluginManager::DatafilePluginManager(const std::string& folder)
 			std::error_code ec; fs::remove(entry.path(), ec);
 		}
 	}
-	ImGuiPanelDesc desc = { "Plugin states", GlobalConfigUiPanel, nullptr };
-	_panelHandle = RegisterImGuiPanel(&desc, false);
 	ReloadAll();
 }
 
 DatafilePluginManager::~DatafilePluginManager() {
 	UnloadPlugins();
-	if (_panelHandle) {
-		UnregisterImGuiPanel(_panelHandle);
-		_panelHandle = 0;
-	}
 }
 
 void DatafilePluginManager::UnloadPlugin(std::string_view plugin_path) {
