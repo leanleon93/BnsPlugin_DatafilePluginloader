@@ -21,9 +21,11 @@ struct PluginImGuiAPI {
 	void (*TextColored)(float r, float g, float b, float a, const char* fmt, ...);
 	void (*Separator)();
 	void (*SameLine)(float offset_from_start_x, float spacing);
+	void (*SameLineDefault)();
 
 	// Buttons and controls
 	bool (*Button)(const char* label);
+	bool (*CustomButton)(const char* label, const float x, const float y);
 	bool (*SmallButton)(const char* label);
 	bool (*ArrowButton)(const char* str_id, int dir); // dir: 0=left, 1=right, 2=up, 3=down
 
@@ -94,4 +96,7 @@ struct PluginImGuiAPI {
 		bool outline,
 		std::string fontPath
 		);
+
+	void (*Columns)(int columns_count, const char* id, bool borders);
+	void (*NextColumn)();
 };
