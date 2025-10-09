@@ -74,16 +74,13 @@ std::string DatafilePluginManager::CopyToShadow(std::string_view plugin_path) co
 extern bool do_reload;
 
 static void GlobalConfigUiPanel(void* userData) {
-	ImGui::Spacing();
-	ImGui::Dummy(ImVec2(0.0f, 5.0f));
-
 	auto stateTexts = g_DatafilePluginManager ? g_DatafilePluginManager->GetPluginStateText() : std::vector<std::string>{ "Plugin manager not initialized." };
 	for (const auto& line : stateTexts) {
 		if (line.find("[Failed]") == 0) {
-			ImGui_TextColored_Wrapper(1.0f, 0.2f, 0.2f, 1.0f, "%s", line.c_str());
+			ImGuiWrapper_TextColored(1.0f, 0.2f, 0.2f, 1.0f, "%s", line.c_str());
 		}
 		else if (line.find("[Loaded]") == 0) {
-			ImGui_TextColored_Wrapper(0.2f, 1.0f, 0.2f, 1.0f, "%s", line.c_str());
+			ImGuiWrapper_TextColored(0.2f, 1.0f, 0.2f, 1.0f, "%s", line.c_str());
 		}
 		else {
 			ImGui::Text("%s", line.c_str());
@@ -103,8 +100,6 @@ static void GlobalConfigUiPanel(void* userData) {
 
 	ImGui::Spacing();
 	ImGui::TextDisabled("Use this button to reload plugins without restarting the game.");
-	ImGui::Spacing();
-	ImGui::Dummy(ImVec2(0.0f, 5.0f));
 }
 
 DatafilePluginManager::DatafilePluginManager(const std::string& folder)

@@ -202,8 +202,10 @@ void ImGuiManager_Render()
 		for (auto& [id, entry] : g_Panels) {
 			if (!entry.alwaysVisible) {
 				ImGui::PushID(id);
-				if (ImGui::CollapsingHeader(entry.name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+				if (ImGui::CollapsingHeader(entry.name.c_str(), ImGuiTreeNodeFlags_CollapsingHeader)) {
+					ImGui::BeginChild(("##child" + std::to_string(id)).c_str(), ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_AutoResizeY);
 					SafePanelCall(entry.fn, entry.userData, entry.name);
+					ImGui::EndChild();
 				}
 				ImGui::PopID();
 			}

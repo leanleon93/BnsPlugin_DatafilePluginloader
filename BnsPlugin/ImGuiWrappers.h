@@ -3,83 +3,87 @@
 #include "imgui_plugin_api.h"
 
 #pragma region ImguiWrappers
-static void ImGui_TextColored_Wrapper(float r, float g, float b, float a, const char* fmt, ...) {
+static void ImGuiWrapper_TextColored(float r, float g, float b, float a, const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	ImGui::TextColoredV(ImVec4(r, g, b, a), fmt, args);
 	va_end(args);
 }
 
-static bool ImGui_ArrowButton_Wrapper(const char* str_id, int dir) {
+static bool ImGuiWrapper_ArrowButton(const char* str_id, int dir) {
 	// Clamp dir to valid ImGuiDir values (0-3)
 	if (dir < 0) dir = 0;
 	if (dir > 3) dir = 3;
 	return ImGui::ArrowButton(str_id, static_cast<ImGuiDir>(dir));
 }
 
-static bool ImGui_Button_Wrapper(const char* label) {
+static bool ImGuiWrapper_Button(const char* label) {
 	return ImGui::Button(label);
 }
 
+static bool ImGuiWrapper_CustomButton(const char* label, const float x = 0, const float y = 0) {
+	return ImGui::Button(label, { x, y });
+}
+
 // InputText: Remove flags/callbacks, just label, buf, and buf_size.
-static bool ImGui_InputText_Wrapper(const char* label, char* buf, size_t buf_size) {
+static bool ImGuiWrapper_InputText(const char* label, char* buf, size_t buf_size) {
 	// No extra flags/callbacks; just basic input
 	return ImGui::InputText(label, buf, buf_size);
 }
 
 // InputInt: Remove extra params, just label and pointer to int.
-static bool ImGui_InputInt_Wrapper(const char* label, int* v) {
+static bool ImGuiWrapper_InputInt(const char* label, int* v) {
 	return ImGui::InputInt(label, v);
 }
 
 // InputFloat: Remove extra params, just label and pointer to float.
-static bool ImGui_InputFloat_Wrapper(const char* label, float* v) {
+static bool ImGuiWrapper_InputFloat(const char* label, float* v) {
 	return ImGui::InputFloat(label, v);
 }
 
 // SliderInt: Only label, pointer, min, max
-static bool ImGui_SliderInt_Wrapper(const char* label, int* v, int v_min, int v_max) {
+static bool ImGuiWrapper_SliderInt(const char* label, int* v, int v_min, int v_max) {
 	return ImGui::SliderInt(label, v, v_min, v_max);
 }
 
 // SliderFloat: Only label, pointer, min, max
-static bool ImGui_SliderFloat_Wrapper(const char* label, float* v, float v_min, float v_max) {
+static bool ImGuiWrapper_SliderFloat(const char* label, float* v, float v_min, float v_max) {
 	return ImGui::SliderFloat(label, v, v_min, v_max);
 }
 
-static bool ImGui_CollapsingHeader_Wrapper(const char* label) {
+static bool ImGuiWrapper_CollapsingHeader(const char* label) {
 	return ImGui::CollapsingHeader(label);
 }
-static void ImGui_BeginChild_Wrapper(const char* str_id) {
+static void ImGuiWrapper_BeginChild(const char* str_id) {
 	ImGui::BeginChild(str_id);
 }
 
-static void ImGui_OpenPopup_Wrapper(const char* str_id) {
+static void ImGuiWrapper_OpenPopup(const char* str_id) {
 	ImGui::OpenPopup(str_id);
 }
-static bool ImGui_BeginPopup_Wrapper(const char* str_id) {
+static bool ImGuiWrapper_BeginPopup(const char* str_id) {
 	return ImGui::BeginPopup(str_id);
 }
-static bool ImGui_Begin_Wrapper(const char* name, bool* p_open, int windowFlags) {
+static bool ImGuiWrapper_Begin(const char* name, bool* p_open, int windowFlags) {
 	return ImGui::Begin(name, p_open, windowFlags);
 }
-static void ImGui_Dummy_Wrapper(float w, float h) {
+static void ImGuiWrapper_Dummy(float w, float h) {
 	ImGui::Dummy(ImVec2(w, h));
 }
-static void ImGui_SetNextWindowSize_Wrapper(float w, float h, int cond) {
+static void ImGuiWrapper_SetNextWindowSize(float w, float h, int cond) {
 	ImGui::SetNextWindowSize(ImVec2(w, h), cond);
 }
 
-static void ImGui_SetNextWindowPos_Wrapper(float x, float y, int cond) {
+static void ImGuiWrapper_SetNextWindowPos(float x, float y, int cond) {
 	ImGui::SetNextWindowPos(ImVec2(x, y), cond);
 }
 
-static void ImGui_SetCursorPos_Wrapper(float x, float y) {
+static void ImGuiWrapper_SetCursorPos(float x, float y) {
 	ImGui::SetCursorPos(ImVec2(x, y));
 }
 static ImFont* betterFont = nullptr;
 
-static void DisplayTextInCenter_Impl(const char* text, float fontSize, unsigned int color, float xOffset = 0.0f, float yOffset = 0.0f, bool outline = true, std::string fontPath = "") {
+static void ImGuiWrapper_DisplayTextInCenter(const char* text, float fontSize, unsigned int color, float xOffset = 0.0f, float yOffset = 0.0f, bool outline = true, std::string fontPath = "") {
 	if (!text) return;
 	ImGuiIO& io = ImGui::GetIO();
 	if (betterFont == nullptr && !fontPath.empty()) {
@@ -112,7 +116,7 @@ static void DisplayTextInCenter_Impl(const char* text, float fontSize, unsigned 
 	drawList->AddText(font, fontSize, pos, color, text);
 }
 
-static void DisplayProgressBarInCenter_Impl(
+static void ImGuiWrapper_DisplayProgressBarInCenter(
 	float progress,
 	const char* label,
 	const char* countdown,
@@ -205,49 +209,57 @@ static void DisplayProgressBarInCenter_Impl(
 	}
 }
 
+static void ImGuiWrapper_SameLineDefault() {
+	ImGui::SameLine();
+}
+
 PluginImGuiAPI g_imguiApi = {
 	&ImGui::Text,
-	&ImGui_TextColored_Wrapper,
+	&ImGuiWrapper_TextColored,
 	&ImGui::Separator,
 	&ImGui::SameLine,
-	&ImGui_Button_Wrapper,
+	&ImGuiWrapper_SameLineDefault,
+	&ImGuiWrapper_Button,
+	&ImGuiWrapper_CustomButton,
 	&ImGui::SmallButton,
-	&ImGui_ArrowButton_Wrapper,
+	&ImGuiWrapper_ArrowButton,
 	&ImGui::Checkbox,
 	&ImGui::RadioButton,
 	&ImGui::RadioButton,
-	&ImGui_InputText_Wrapper,
-	&ImGui_InputInt_Wrapper,
-	&ImGui_InputFloat_Wrapper,
-	&ImGui_SliderInt_Wrapper,
-	&ImGui_SliderFloat_Wrapper,
+	&ImGuiWrapper_InputText,
+	&ImGuiWrapper_InputInt,
+	&ImGuiWrapper_InputFloat,
+	&ImGuiWrapper_SliderInt,
+	&ImGuiWrapper_SliderFloat,
 	&ImGui::Combo,
-	&ImGui_CollapsingHeader_Wrapper,
+	&ImGuiWrapper_CollapsingHeader,
 	&ImGui::TreeNode,
 	&ImGui::TreePop,
-	&ImGui_BeginChild_Wrapper,
+	&ImGuiWrapper_BeginChild,
 	&ImGui::EndChild,
-	&ImGui_OpenPopup_Wrapper,
-	&ImGui_BeginPopup_Wrapper,
+	&ImGuiWrapper_OpenPopup,
+	&ImGuiWrapper_BeginPopup,
 	&ImGui::EndPopup,
 	&ImGui::BeginTooltip,
 	&ImGui::EndTooltip,
 	&ImGui::SetTooltip,
 	&ImGui::IsItemHovered,
-	&ImGui_Begin_Wrapper,
+	&ImGuiWrapper_Begin,
 	&ImGui::End,
 	&ImGui::Spacing,
-	&ImGui_Dummy_Wrapper,
+	&ImGuiWrapper_Dummy,
 	&ImGui::Indent,
 	&ImGui::Unindent,
 	&ImGui::PushID,
 	&ImGui::PushID,
 	&ImGui::PopID,
-	&ImGui_SetNextWindowSize_Wrapper,
-	&ImGui_SetNextWindowPos_Wrapper,
+	&ImGuiWrapper_SetNextWindowSize,
+	&ImGuiWrapper_SetNextWindowPos,
 	&ImGui::SetWindowFontScale,
-	&ImGui_SetCursorPos_Wrapper,
-	&DisplayTextInCenter_Impl,
-	&DisplayProgressBarInCenter_Impl
+	&ImGuiWrapper_SetCursorPos,
+	&ImGuiWrapper_DisplayTextInCenter,
+	&ImGuiWrapper_DisplayProgressBarInCenter,
+	&ImGui::Columns,
+	&ImGui::NextColumn
 };
 #pragma endregion
