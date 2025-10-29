@@ -41,6 +41,26 @@ void __stdcall UnregisterImGuiPanel(int handle) {
 	g_Panels.erase(handle);
 }
 
+static ImFont* g_KoreanFont = nullptr;
+static ImFont* g_DefaultFont = nullptr;
+static bool g_UseKoreanFont = false;
+
+
+static void LoadFonts() {
+	ImGuiIO& io = ImGui::GetIO();
+
+	ImFontConfig defaultFontConfig;
+	defaultFontConfig.SizePixels = 13.0f; // Default font size
+	g_DefaultFont = io.Fonts->AddFontDefault(&defaultFontConfig);
+
+	const char* malgunFontPath = "C:\\Windows\\Fonts\\malgun.ttf";
+	ImFontConfig koreanFontConfig;
+	koreanFontConfig.SizePixels = 16.0f; // Korean font size
+	koreanFontConfig.OversampleH = 3;    // Improve horizontal oversampling
+	koreanFontConfig.OversampleV = 1;    // Improve vertical oversampling
+	g_KoreanFont = io.Fonts->AddFontFromFileTTF(malgunFontPath, koreanFontConfig.SizePixels, &koreanFontConfig, io.Fonts->GetGlyphRangesKorean());
+}
+
 void ImGuiManager_Init(HWND hwnd, ID3D11Device* device, ID3D11DeviceContext* context)
 {
 	g_hWnd = hwnd;
@@ -48,6 +68,7 @@ void ImGuiManager_Init(HWND hwnd, ID3D11Device* device, ID3D11DeviceContext* con
 	g_pd3dDeviceContext = context;
 
 	ImGui::CreateContext();
+	LoadFonts();
 	ImGui_ImplWin32_Init(g_hWnd);
 	ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
 
@@ -218,6 +239,8 @@ void ImGuiManager_Render()
 		do_reload = false;
 	}
 
+
+
 	std::lock_guard<std::mutex> lock(g_PanelsMutex);
 
 	for (auto& [id, entry] : g_Panels) {
@@ -225,9 +248,16 @@ void ImGuiManager_Render()
 			SafePanelCall(entry.fn, entry.userData, entry.name);
 		}
 	}
-
+	ImGui::PushFont(g_UseKoreanFont ? g_KoreanFont : g_DefaultFont);
 	if (g_ImGuiPanelVisible) {
 		ImGui::Begin("Datafile Plugins", &g_ImGuiPanelVisible, ImGuiWindowFlags_NoCollapse);
+		if (ImGui::BeginMenu("Settings")) {
+			if (ImGui::MenuItem("Use Korean Font", nullptr, g_UseKoreanFont)) {
+				g_UseKoreanFont = !g_UseKoreanFont;
+			}
+			ImGui::EndMenu();
+		}
+		ImGui::Spacing();
 		if (ImGui::CollapsingHeader("Plugin Status", ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_DefaultOpen)) {
 			GlobalConfigUiPanel(nullptr);
 		}
@@ -257,7 +287,7 @@ void ImGuiManager_Render()
 		// No panels to show, skip rendering
 		return;
 	}
-
+	ImGui::PopFont();
 	ImGui::Render();
 	g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
