@@ -49,16 +49,31 @@ static bool g_UseKoreanFont = false;
 static void LoadFonts() {
 	ImGuiIO& io = ImGui::GetIO();
 
+	// Load default font
 	ImFontConfig defaultFontConfig;
 	defaultFontConfig.SizePixels = 13.0f; // Default font size
 	g_DefaultFont = io.Fonts->AddFontDefault(&defaultFontConfig);
 
+	// Path to the Korean font
 	const char* malgunFontPath = "C:\\Windows\\Fonts\\malgun.ttf";
+
+	// Check if the font file exists
+	std::ifstream fontFile(malgunFontPath);
+	if (!fontFile.good()) {
+		g_KoreanFont = g_DefaultFont; // Fallback to default font
+		return;
+	}
+
+	// Load Korean font
 	ImFontConfig koreanFontConfig;
 	koreanFontConfig.SizePixels = 16.0f; // Korean font size
 	koreanFontConfig.OversampleH = 3;    // Improve horizontal oversampling
 	koreanFontConfig.OversampleV = 1;    // Improve vertical oversampling
 	g_KoreanFont = io.Fonts->AddFontFromFileTTF(malgunFontPath, koreanFontConfig.SizePixels, &koreanFontConfig, io.Fonts->GetGlyphRangesKorean());
+
+	if (!g_KoreanFont) {
+		g_KoreanFont = g_DefaultFont; // Fallback to default font
+	}
 }
 
 void ImGuiManager_Init(HWND hwnd, ID3D11Device* device, ID3D11DeviceContext* context)
