@@ -252,6 +252,42 @@ inline RecordType* GetText(
 	return GetRecord<RecordType>(textTable, textKey, oFind);
 }
 
+inline void ForEachQuest(
+	const Data::DataManager* dataManager,
+	std::function<bool(Quest*, size_t)> func,
+	size_t limit = SIZE_MAX
+) {
+	auto table = GetTable(dataManager, L"quest");
+	QuestTableImpl* questTable = (QuestTableImpl*)(table);
+
+	if (!questTable || !questTable->_questListArray || !func) return;
+	for (unsigned int index = 0; index < questTable->_questListSize; ++index) {
+		Quest* quest = questTable->_questListArray[index];
+		if (quest) {
+			if (!func(quest, index)) break; // break if func returns false
+			if (static_cast<unsigned long long>(index) + 1 >= limit) break;   // break if limit reached
+		}
+	}
+}
+
+inline Quest* GetQuest(
+	const Data::DataManager* dataManager,
+	unsigned __int16 questId
+) {
+	static DrMultiKeyTable* questTable = nullptr;
+	if (questTable == nullptr) {
+		questTable = GetTable(dataManager, L"quest");
+	}
+	QuestTableImpl* questTableImpl = (QuestTableImpl*)(questTable);
+	if (!questTableImpl || !questTableImpl->_questArray) {
+		return nullptr;
+	}
+	if (questId > questTableImpl->_maxQuestId) {
+		return nullptr;
+	}
+	return questTableImpl->_questArray[questId - 1];
+}
+
 //This is pretty slow and hanging on main thread if the table is large
 inline int GetRecordCount(DrMultiKeyTable* table) {
 	if (!table) return 0;

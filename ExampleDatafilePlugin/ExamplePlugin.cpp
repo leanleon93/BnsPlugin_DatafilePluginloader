@@ -3,8 +3,11 @@
 #include <EU/item/AAA_item_RecordBase.h>
 #include <EU/BnsTableNames.h>
 #include <algorithm>
+#include <EU/quest/AAA_quest_RecordBase.h>
 
 static int g_panelHandle = 0;
+static Data::DataManager* g_dataManager = nullptr;
+static DrEl* (__fastcall* g_oFind)(DrMultiKeyTable* thisptr, unsigned __int64 key) = nullptr;
 static RegisterImGuiPanelFn g_register = nullptr;
 static UnregisterImGuiPanelFn g_unregister = nullptr;
 static PluginImGuiAPI* g_imgui = nullptr;
@@ -142,6 +145,36 @@ static void MyTestPanel(void* userData) {
 	}
 	g_imgui->Separator();
 
+	if (g_imgui->Button("Debug Button")) {
+		auto quest = GetQuest(g_dataManager, 28337);
+		if (quest != nullptr) {
+			BnsTables::EU::quest_Record* questRecord = (BnsTables::EU::quest_Record*)quest->_questRecord;
+			if (questRecord->name2.Key != 0) {
+				auto textRecord = GetRecord<BnsTables::EU::text_Record>(g_dataManager, L"text", questRecord->name2.Key, g_oFind);
+				if (textRecord != nullptr) {
+					g_imgui->Text("Quest 28337 name: %ls", textRecord->text.ReadableText);
+					int debug = 0;
+				}
+			}
+		}
+		ForEachQuest(g_dataManager, [&](Quest* quest, size_t idx) {
+			if (quest) {
+				BnsTables::EU::quest_Record* questRecord = (BnsTables::EU::quest_Record*)quest->_questRecord;
+				if (questRecord->key.id == 28337) {
+					if (questRecord->name2.Key != 0) {
+						auto textRecord = GetRecord<BnsTables::EU::text_Record>(g_dataManager, L"text", questRecord->name2.Key, g_oFind);
+						if (textRecord != nullptr) {
+							g_imgui->Text("(From ForEachQuest) Quest 28337 name: %ls", textRecord->text.ReadableText);
+							int debug = 0;
+						}
+					}
+					return false; // stop iteration
+				}
+			}
+			return true;
+			});
+	}
+
 	if (imguiDemo) {
 		if (g_imgui->Button("Click Me")) ++counter;
 		g_imgui->SameLine(0.0f, -1.0f);
@@ -200,6 +233,8 @@ static void __fastcall Init(PluginInitParams* params) {
 		g_panelHandle = g_register(&desc, false);
 	}
 	if (params && params->dataManager) {
+		g_dataManager = params->dataManager;
+		g_oFind = params->oFind;
 		auto item100Key = BnsTables::EU::item_Record::Key{};
 		item100Key.key = 0;
 		item100Key.id = 100;
