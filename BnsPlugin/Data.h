@@ -85,6 +85,89 @@ struct __declspec(align(4)) DrDataTableImpl : DrDataTable {
 	__declspec(align(2)) DrCacheData* _cacheData;
 	void* _tableCacheInfo;
 };
+
+struct __declspec(align(4)) QuestFilterSet // sizeof=0x1C
+{
+	DrEl* _filterSetRecord;
+	char* _filterRecords;
+	void** _filters; //BnsTables::EU::quest_filter_Record**
+	int _filterCount;
+};
+
+struct __declspec(align(4)) QuestReactionSet // sizeof=0x1C
+{
+	DrEl* _reactionSetRecord;
+	char* _reactionRecords;
+	char _reactionsPad[8];
+	int _reactionCount;
+};
+
+struct __declspec(align(4)) QuestCase // sizeof=0x2C
+{
+	__int32 _caseCategory;
+	DrEl* _caseRecord;
+	QuestFilterSet* _filterSetArray;
+	int _filterSetNum;
+	QuestReactionSet* _reactionSetArray;
+	int _reactionSetNum;
+	char _questDecisionPad[8];
+};
+
+struct QuestReward // sizeof=0x20
+{
+	DrEl* _basicRecord;
+	DrEl** _fixedRewardRecordArray;
+	int _fixedRewardNum;
+	DrEl** _optionalRewardRecordArray;
+	int _optionalRewardNum;
+};
+
+struct Acquisition // sizeof=0x28
+{
+	DrEl* _acquisitionRecord;
+	QuestCase* _caseArray;
+	int _caseNum;
+	DrEl** _acquisitionLossRecordArray;
+	int _acquisitionLossRecordNum;
+	QuestReward* _acquisitionReward;
+};
+
+struct quest_Record_KeyStub : DrEl {
+public:
+	union Key
+	{
+		struct {
+			__int16 id;
+
+		};
+		unsigned __int64 key;
+	};
+	__declspec(align(8)) Key key;
+};
+
+struct __declspec(align(4)) Quest {
+	quest_Record_KeyStub* _questRecord;
+	Acquisition* _acquisition;
+	DrEl* _missionStepRecordArray[16];
+	void* _missionStepReactionSet[16];
+	int _missionStepReactionSetNum[16];
+	void* _missionArray[16];
+	void* _missionStepFailArray[16];
+	char _missionStepCompletedQuestDecisionPad[80];
+	void* _completion;
+	void* _transitArray[9];
+	DrEl** _giveupLossRecordArray;
+	int _giveupLossRecordNum;
+};
+
+struct __declspec(align(4))  QuestTableImpl : DrDataTable {
+	unsigned __int16 _maxQuestId;
+	unsigned __int16 _questListSize;
+	Quest** _questArray;
+	Quest** _questListArray;
+	DrEl _el;
+};
+
 struct DrMultiKeyElMap;
 struct DrMultiKeyElMap_vtbl {
 	char padding[0x08];
