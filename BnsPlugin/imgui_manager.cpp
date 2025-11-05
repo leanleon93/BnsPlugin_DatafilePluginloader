@@ -254,16 +254,26 @@ void ImGuiManager_Render()
 		do_reload = false;
 	}
 
-
+	//count g_Panels with alwaysVisible
+	int alwaysVisibleCount = std::count_if(
+		g_Panels.begin(), g_Panels.end(),
+		[](const std::pair<const int, PanelEntry>& pair) {
+			return pair.second.alwaysVisible;
+		}
+	);
+	if (alwaysVisibleCount == 0 && !g_ImGuiPanelVisible) {
+		// No panels to show, skip rendering
+		return;
+	}
 
 	std::lock_guard<std::mutex> lock(g_PanelsMutex);
 
+	ImGui::PushFont(g_UseKoreanFont ? g_KoreanFont : g_DefaultFont);
 	for (auto& [id, entry] : g_Panels) {
 		if (entry.alwaysVisible) {
 			SafePanelCall(entry.fn, entry.userData, entry.name);
 		}
 	}
-	ImGui::PushFont(g_UseKoreanFont ? g_KoreanFont : g_DefaultFont);
 	if (g_ImGuiPanelVisible) {
 		ImGui::Begin("Datafile Plugins", &g_ImGuiPanelVisible, ImGuiWindowFlags_NoCollapse);
 		if (ImGui::BeginMenu("Settings")) {
@@ -289,18 +299,6 @@ void ImGuiManager_Render()
 			}
 		}
 		ImGui::End();
-	}
-
-	//count g_Panels with alwaysVisible
-	int alwaysVisibleCount = std::count_if(
-		g_Panels.begin(), g_Panels.end(),
-		[](const std::pair<const int, PanelEntry>& pair) {
-			return pair.second.alwaysVisible;
-		}
-	);
-	if (alwaysVisibleCount == 0 && !g_ImGuiPanelVisible) {
-		// No panels to show, skip rendering
-		return;
 	}
 	ImGui::PopFont();
 	ImGui::Render();
