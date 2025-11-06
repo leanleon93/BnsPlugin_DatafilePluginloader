@@ -283,10 +283,18 @@ static void BnsPlugin_Init() {
 	InitImgui();
 }
 
+#include <fstream> // Include fstream for file handling
+
 void WINAPI BnsPlugin_Main() {
+
 #ifdef _DEBUG
+#ifdef _DEBUGFILE
+	FILE* file = nullptr;
+	freopen_s(&file, "datafilepluginloader_output.log", "w", stdout);
+#else
 	AllocConsole();
 	(void)freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
+#endif
 	std::cout << "InitNotification: BNSR.exe" << std::endl;
 #endif
 	static std::once_flag once;

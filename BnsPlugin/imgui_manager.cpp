@@ -1,5 +1,6 @@
 #include "imgui_manager.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include <map>
@@ -178,7 +179,19 @@ static void SafePanelCall_SEH(ImGuiPanelRenderFn fn, void* userData, const char*
 
 // C++ wrapper (safe to use std::string here, but not in SEH function)
 static void SafePanelCall(ImGuiPanelRenderFn fn, void* userData, const std::string& name) {
-	SafePanelCall_SEH(fn, userData, name.c_str());
+	ImGuiErrorRecoveryState state;
+	ImGui::ErrorRecoveryStoreState(&state);
+	try {
+		SafePanelCall_SEH(fn, userData, name.c_str());
+	}
+	catch (const std::exception& e) {
+		DebugLog(("C++ exception in panel '" + std::string(name) + "': " + std::string(e.what())).c_str());
+		ImGui::ErrorRecoveryTryToRecoverState(&state);
+	}
+	catch (...) {
+		DebugLog(("Unknown C++ exception in panel '" + std::string(name) + "'").c_str());
+		ImGui::ErrorRecoveryTryToRecoverState(&state);
+	}
 }
 
 // Release RTV (call before swapchain resize or device loss)
@@ -187,7 +200,7 @@ static void ReleaseRenderTarget()
 	if (g_mainRenderTargetView) {
 		g_mainRenderTargetView->Release();
 		g_mainRenderTargetView = nullptr;
-		DebugLog("ImGuiManager: Released main render target view.\n");
+		//DebugLog("ImGuiManager: Released main render target view.\n");
 	}
 }
 
@@ -204,7 +217,7 @@ static void CreateRenderTarget(IDXGISwapChain* pSwapChain)
 			DebugLog("ImGuiManager: Failed to create render target view!\n");
 		}
 		else {
-			DebugLog("ImGuiManager: Created main render target view.\n");
+			//DebugLog("ImGuiManager: Created main render target view.\n");
 		}
 	}
 	else
@@ -254,22 +267,19 @@ void ImGuiManager_Render()
 		do_reload = false;
 	}
 
+	std::map<int, PanelEntry> panelsCopy; // Local copy outside the mutex
+	{
+		std::lock_guard<std::mutex> lock(g_PanelsMutex); // Lock the mutex
+		panelsCopy = g_Panels; // Copy the map while the mutex is locked
+	}
 	//count g_Panels with alwaysVisible
 	int alwaysVisibleCount = std::count_if(
-		g_Panels.begin(), g_Panels.end(),
+		panelsCopy.begin(), panelsCopy.end(),
 		[](const std::pair<const int, PanelEntry>& pair) {
 			return pair.second.alwaysVisible;
 		}
 	);
-	if (alwaysVisibleCount == 0 && !g_ImGuiPanelVisible) {
-		// No panels to show, skip rendering
-		return;
-	}
-
-	std::lock_guard<std::mutex> lock(g_PanelsMutex);
-
-	ImGui::PushFont(g_UseKoreanFont ? g_KoreanFont : g_DefaultFont);
-	for (auto& [id, entry] : g_Panels) {
+	for (auto& [id, entry] : panelsCopy) {
 		if (entry.alwaysVisible) {
 			SafePanelCall(entry.fn, entry.userData, entry.name);
 		}
@@ -279,6 +289,7 @@ void ImGuiManager_Render()
 		if (ImGui::BeginMenu("Settings")) {
 			if (ImGui::MenuItem("Use Korean Font", nullptr, g_UseKoreanFont)) {
 				g_UseKoreanFont = !g_UseKoreanFont;
+				ImGui::GetIO().FontDefault = g_UseKoreanFont ? g_KoreanFont : g_DefaultFont;
 			}
 			ImGui::EndMenu();
 		}
@@ -287,7 +298,7 @@ void ImGuiManager_Render()
 			GlobalConfigUiPanel(nullptr);
 		}
 		ImGui::Spacing();
-		for (auto& [id, entry] : g_Panels) {
+		for (auto& [id, entry] : panelsCopy) {
 			if (!entry.alwaysVisible) {
 				ImGui::PushID(id);
 				if (ImGui::CollapsingHeader(entry.name.c_str(), ImGuiTreeNodeFlags_CollapsingHeader)) {
@@ -300,10 +311,11 @@ void ImGuiManager_Render()
 		}
 		ImGui::End();
 	}
-	ImGui::PopFont();
 	ImGui::Render();
-	g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
-	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	if (g_ImGuiPanelVisible || alwaysVisibleCount > 0) {
+		g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	}
 }
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -374,6 +386,5 @@ void ImGuiManager_OnPresent(IDXGISwapChain* pSwapChain, Present_t oPresent, IDXG
 
 	ImGuiManager_NewFrame();
 	ImGuiManager_Render();
-
 	oPresent(swap, sync, flags);
 }
