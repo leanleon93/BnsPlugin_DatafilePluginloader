@@ -341,7 +341,7 @@ struct Party {
 	std::vector<Member*> _memberList;
 };
 struct PTPlayer;
-struct Player {
+struct Player /* : Creature */ { //the offsets need cleanup to confirm inheritance
 	char pad0[0x08];
 	unsigned __int64 id;
 	char pad1[0x08];
@@ -433,14 +433,82 @@ static GameObject::TYPE GetGameObjectType(GameObject* gameObject) {
 	return GetGameObjectType(gameObject->id);
 }
 
+struct EffectProperty {
+	void* __vftable;
+	__int16 pos;
+	char pad[2];
+	int data_id;
+	int duration;
+	char stack_count;
+	char detach_count;
+	char pad1[2];
+	__int64 expiration_time;
+};
+
+struct Creature;
+struct EffectCatalog {
+	struct Item {
+		EffectProperty prop;
+		DrEl* effect; //BnsTables::EU::effect_Record* or BnsTables::KR::effect_Record* This is to avoid including BnsTables dependencies
+	};
+	Creature* owner;
+	std::vector<EffectCatalog::Item*> catalog;
+	int effectCount;
+	char pad[4];
+	//EffectProperty lastDetachedEffect;
+};
+
+struct PropString {
+	short len;
+	char pad[6];
+	wchar_t* str;
+};
+
 struct Creature : GameObject {
-	char pad[0xB0];
+	char pad10[0x80];
+	PropString name;
+
+	char pad9[12];
+	signed char level;
+	char pad8[3];
+	int exp;
+	signed char mastery_level;
+	char pad7[3];
+	__int64 mastery_exp;
+
 	__int64 hp;
+
+	__int64 guard_gauge;
+	__int64 money;
+	__int64 money_diff;
+
+	char pad5[0xBF0];
+
+	// pos = 0xCD0 - C0
+	EffectCatalog* effectCatalog[17];
+	char radius[4];
+	char pad4[4];
+	__int64 _scoreHP;
+	bool _outofSightByWarp;
+	char pad3[7];
+	char pad2[0x10];
+	bool _notTargetableByEffect;
+	char pad1[7];
+	void* _playingActions;
+	char _soulMaskId;
+	char _soulMaskId2;
+	bool _playedCombatDirecting;
+	bool _directingFlagStun;
+	bool _directingFlagDown;
+	bool _directingFlagKneel;
+	bool _directingFlagKnockBack;
+	char pad[1];
+	//end = 0xCD0
 };
 
 #pragma pack(push, 1)
 struct Npc : Creature {
-	char padding[0xCD0];
+	//char padding[0xCD0];
 	void* npcRecord; // BnsTables::EU::npc_Record* or BnsTables::KR::npc_Record* This is to avoid including BnsTables dependencies
 	char pad2[0x40 - 0x08];
 	__int64 _finalHp;
