@@ -450,12 +450,14 @@ struct EffectCatalog {
 	struct Item {
 		EffectProperty prop;
 		DrEl* effect; //BnsTables::EU::effect_Record* or BnsTables::KR::effect_Record* This is to avoid including BnsTables dependencies
+		char pad[0x10];
+		PreciseTimer durationTimer;
 	};
 	Creature* owner;
 	std::vector<EffectCatalog::Item*> catalog;
 	int effectCount;
 	char pad[4];
-	//EffectProperty lastDetachedEffect;
+	EffectProperty lastDetachedEffect;
 };
 
 struct PropString {
