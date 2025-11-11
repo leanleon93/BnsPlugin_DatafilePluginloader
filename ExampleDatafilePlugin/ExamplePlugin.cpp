@@ -4,12 +4,22 @@
 #include <EU/BnsTableNames.h>
 #include <algorithm>
 #include <EU/quest/AAA_quest_RecordBase.h>
+#include <d3d11.h>
+#include <imgui_manager.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#include <deps/xorstr.hpp>
+
+
 
 static int g_panelHandle = 0;
+static int g_imageOverlayHandle = 0;
 static Data::DataManager* g_dataManager = nullptr;
 static DrEl* (__fastcall* g_oFind)(DrMultiKeyTable* thisptr, unsigned __int64 key) = nullptr;
 static RegisterImGuiPanelFn g_register = nullptr;
 static UnregisterImGuiPanelFn g_unregister = nullptr;
+static UnregisterDetoursFunc g_unregisterDetours = nullptr;
 static PluginImGuiAPI* g_imgui = nullptr;
 static std::wstring item100Alias = L"";
 static std::wstring itemSwapSourceName2 = L"";
@@ -20,6 +30,87 @@ static std::vector<std::tuple<int, signed char, std::wstring>> itemList;
 static std::vector<std::tuple<int, signed char, std::wstring, std::wstring>> itemList2;
 static std::vector<std::tuple<unsigned __int64, std::wstring, std::wstring>> textList;
 static bool imguiDemo = false;
+static ID3D11Device* (*g_GetD3DDevice)() = nullptr;
+static int my_image_width = 0;
+static int my_image_height = 0;
+static ID3D11ShaderResourceView* my_image_texture = NULL;
+static bool imageShowing = false;
+static float imagePosX = 50.0f;
+static float imagePosY = 50.0f;
+
+// Simple helper function to load an image into a DX11 texture with common settings
+bool LoadTextureFromMemory(const void* data, size_t data_size, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
+{
+	if (g_GetD3DDevice() == nullptr) return false;
+	// Load from disk into a raw RGBA buffer
+	int image_width = 0;
+	int image_height = 0;
+	unsigned char* image_data = stbi_load_from_memory((const unsigned char*)data, (int)data_size, &image_width, &image_height, NULL, 4);
+	if (image_data == NULL)
+		return false;
+
+	// Create texture
+	D3D11_TEXTURE2D_DESC desc;
+	ZeroMemory(&desc, sizeof(desc));
+	desc.Width = image_width;
+	desc.Height = image_height;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	desc.SampleDesc.Count = 1;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	desc.CPUAccessFlags = 0;
+
+	ID3D11Texture2D* pTexture = NULL;
+	D3D11_SUBRESOURCE_DATA subResource;
+	subResource.pSysMem = image_data;
+	subResource.SysMemPitch = desc.Width * 4;
+	subResource.SysMemSlicePitch = 0;
+	g_GetD3DDevice()->CreateTexture2D(&desc, &subResource, &pTexture);
+
+	// Create texture view
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+	ZeroMemory(&srvDesc, sizeof(srvDesc));
+	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = desc.MipLevels;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	g_GetD3DDevice()->CreateShaderResourceView(pTexture, &srvDesc, out_srv);
+	pTexture->Release();
+
+	*out_width = image_width;
+	*out_height = image_height;
+	stbi_image_free(image_data);
+
+	return true;
+}
+
+// Open and read a file, then forward to LoadTextureFromMemory()
+bool LoadTextureFromFile(const char* file_name, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
+{
+	if (g_GetD3DDevice() == nullptr) return false;
+	FILE* f = nullptr;
+	if (fopen_s(&f, file_name, "rb") != 0 || f == nullptr) {
+		return false;
+	}
+
+	fseek(f, 0, SEEK_END);
+	size_t file_size = (size_t)ftell(f);
+	if (file_size == (size_t)-1) {
+		fclose(f);
+		return false;
+	}
+
+	fseek(f, 0, SEEK_SET);
+	void* file_data = g_imgui->MemAlloc(file_size);
+	fread(file_data, 1, file_size, f);
+	fclose(f);
+
+	bool ret = LoadTextureFromMemory(file_data, file_size, out_srv, out_width, out_height);
+	g_imgui->MemFree(file_data);
+	return ret;
+}
 
 static PluginReturnData __fastcall DatafileItemDetour(PluginExecuteParams* params) {
 	PLUGIN_DETOUR_GUARD(params, BnsTables::EU::TableNames::GetTableVersion);
@@ -71,6 +162,34 @@ static PluginReturnData __fastcall DatafileTextDetour(PluginExecuteParams* param
 	//}
 
 	return {};
+}
+
+static void ImageOverlay(void* userData) {
+	if (my_image_texture == NULL) {
+		if (my_image_texture != NULL) {
+			my_image_texture->Release();
+			my_image_texture = NULL;
+		}
+		if (LoadTextureFromFile("datafilePlugins/test.png", &my_image_texture, &my_image_width, &my_image_height)) {
+			// Loaded successfully
+		}
+		else {
+			// Failed to load
+		}
+	}
+	if (imageShowing && my_image_texture != NULL) {
+		g_imgui->DisplayImageAtPos((void*)my_image_texture, (float)my_image_width, (float)my_image_height, imagePosX, imagePosY, 0.0f, 0.0f, 1.0f, 1.0f);
+		float offsetX = imagePosX - (2560 / 2.0f);
+		float offsetY = (imagePosY + my_image_height + 10.0f) - (1440 / 2.0f);
+
+		const char* text = "TEST IMAGE TEXT";
+		// Call DisplayTextInCenter with adjusted offsets
+		float textPosX = imagePosX + (my_image_width / 2.0f) - ((0) / 2.0f);
+		float textPosY = imagePosY + my_image_height + 10.0f; // Slightly below the image
+
+		// Display the text
+		g_imgui->DisplayTextInCenter(text, 24.0f, 0xFF0000FF, textPosX - (2560 / 2.0f), textPosY - (1440 / 2.0f), true, "");
+	}
 }
 
 /* Example ImGui panel with various controls and widgets
@@ -145,6 +264,27 @@ static void MyTestPanel(void* userData) {
 	}
 	g_imgui->Separator();
 
+	if (g_imgui->Button("Reload image")) {
+		if (my_image_texture != NULL) {
+			my_image_texture->Release();
+			my_image_texture = NULL;
+		}
+		if (LoadTextureFromFile("datafilePlugins/test.png", &my_image_texture, &my_image_width, &my_image_height)) {
+			// Loaded successfully
+		}
+		else {
+			// Failed to load
+		}
+	}
+	if (g_imgui->Button("Toggle Image")) {
+		imageShowing = !imageShowing;
+	}
+	g_imgui->Text("Image Showing: %s", imageShowing ? "Yes" : "No");
+	g_imgui->Text("Image Ready: %s", (my_image_texture != NULL) ? "Yes" : "No");
+	g_imgui->SliderFloat("Image Pos X", &imagePosX, 0.0f, 2560.0f);
+	g_imgui->SliderFloat("Image Pos Y", &imagePosY, 0.0f, 1440.0f);
+
+	g_imgui->Separator();
 	if (g_imgui->Button("Debug Button")) {
 		auto quest = GetQuest(g_dataManager, 28337);
 		if (quest != nullptr) {
@@ -223,6 +363,7 @@ static void MyTestPanel(void* userData) {
 	}
 }
 
+
 static void __fastcall Init(PluginInitParams* params) {
 	if (params && params->registerImGuiPanel && params->unregisterImGuiPanel && params->imgui)
 	{
@@ -231,6 +372,15 @@ static void __fastcall Init(PluginInitParams* params) {
 		g_unregister = params->unregisterImGuiPanel;
 		ImGuiPanelDesc desc = { "ExampleDatafilePlugin Panel", MyTestPanel, nullptr };
 		g_panelHandle = g_register(&desc, false);
+		ImGuiPanelDesc desc2 = { "ExampleDatafilePlugin Panel", ImageOverlay, nullptr };
+		g_imageOverlayHandle = g_register(&desc2, true);
+	}
+	if (params && params->GetD3DDevice) {
+		g_GetD3DDevice = params->GetD3DDevice;
+	}
+	if (params && params->imgui && params->GetD3DDevice) {
+		bool ret = LoadTextureFromFile("datafilePlugins/test.png", &my_image_texture, &my_image_width, &my_image_height);
+		assert(ret);
 	}
 	if (params && params->dataManager) {
 		g_dataManager = params->dataManager;
@@ -277,6 +427,10 @@ static void __fastcall Unregister() {
 	if (g_unregister && g_panelHandle != 0) {
 		g_unregister(g_panelHandle);
 		g_panelHandle = 0;
+	}
+	if (g_unregister && g_imageOverlayHandle != 0) {
+		g_unregister(g_imageOverlayHandle);
+		g_imageOverlayHandle = 0;
 	}
 }
 

@@ -22,3 +22,5 @@ void ImGuiManager_OnPresent(IDXGISwapChain* pSwapChain, Present_t oPresent, IDXG
 
 extern "C" __declspec(dllexport) int __stdcall RegisterImGuiPanel(const ImGuiPanelDesc* desc, bool alwaysVisible);
 extern "C" __declspec(dllexport) void __stdcall UnregisterImGuiPanel(int handle);
+
+ID3D11Device* GetD3DDevice();

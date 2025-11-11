@@ -18,6 +18,10 @@ static HWND g_hWnd = nullptr;
 static bool g_Initialized = false;
 static WNDPROC oWndProc = nullptr;
 
+ID3D11Device* GetD3DDevice() {
+	return g_pd3dDevice;
+}
+
 struct PanelEntry {
 	std::string name;
 	ImGuiPanelRenderFn fn;

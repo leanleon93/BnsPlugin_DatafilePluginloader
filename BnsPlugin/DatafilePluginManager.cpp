@@ -376,6 +376,7 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 		params.imgui = &g_imguiApi;
 		params.registerDetours = &RegisterDetours;
 		params.unregisterDetours = &UnregisterDetours;
+		params.GetD3DDevice = &GetD3DDevice;
 		handle->init(&params);
 	}
 	result = std::string(handle->identifier()) + " v" + handle->version();

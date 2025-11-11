@@ -213,6 +213,46 @@ static void ImGuiWrapper_SameLineDefault() {
 	ImGui::SameLine();
 }
 
+static void ImGuiWrapper_Image(void* user_texture_id, float width, float height, float u0, float v0, float u1, float v1) {
+	ImGui::Image(user_texture_id, ImVec2(width, height), ImVec2(u0, v0), ImVec2(u1, v1));
+}
+
+static void ImGuiWrapper_DisplayImageAtPos(
+	void* user_texture_id,
+	float imageWidth,
+	float imageHeight,
+	float posX,
+	float posY,
+	float u0,
+	float v0,
+	float u1,
+	float v1
+) {
+	ImDrawList* drawList = ImGui::GetForegroundDrawList();
+	ImVec2 topLeft(posX, posY);
+	ImVec2 bottomRight(posX + imageWidth, posY + imageHeight);
+	drawList->AddImage(
+		user_texture_id,
+		topLeft,
+		bottomRight,
+		ImVec2(u0, v0),
+		ImVec2(u1, v1)
+	);
+}
+
+static std::pair<float, float> ImGuiWrapper_GetMousePos() {
+	ImVec2 pos = ImGui::GetMousePos();
+	return { pos.x, pos.y };
+}
+
+static bool ImGuiWrapper_IsMouseDown(int button) {
+	return ImGui::IsMouseDown(button);
+}
+
+static bool ImGuiWrapper_IsMouseClicked(int button) {
+	return ImGui::IsMouseClicked(button);
+}
+
 PluginImGuiAPI g_imguiApi = {
 	&ImGui::Text,
 	&ImGuiWrapper_TextColored,
@@ -260,6 +300,13 @@ PluginImGuiAPI g_imguiApi = {
 	&ImGuiWrapper_DisplayTextInCenter,
 	&ImGuiWrapper_DisplayProgressBarInCenter,
 	&ImGui::Columns,
-	&ImGui::NextColumn
+	&ImGui::NextColumn,
+	&ImGuiWrapper_Image,
+	&ImGui::MemAlloc,
+	&ImGui::MemFree,
+	&ImGuiWrapper_DisplayImageAtPos,
+	&ImGuiWrapper_GetMousePos,
+	&ImGui::IsMouseDown,
+	&ImGui::IsMouseClicked
 };
 #pragma endregion

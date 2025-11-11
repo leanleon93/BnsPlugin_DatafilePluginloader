@@ -99,4 +99,12 @@ struct PluginImGuiAPI {
 
 	void (*Columns)(int columns_count, const char* id, bool borders);
 	void (*NextColumn)();
+
+	void (*Image)(void* user_texture_id, float width, float height, float u0, float v0, float u1, float v1);
+	void* (*MemAlloc)(size_t size);
+	void (*MemFree)(void* ptr);
+	void (*DisplayImageAtPos)(void* user_texture_id, float width, float height, float screenPosX, float screenPosY, float u0, float v0, float u1, float v1);
+	std::pair<float, float>(*GetMousePos)();
+	bool (*IsMouseDown)(int button);
+	bool (*IsMouseClicked)(int button, bool repeat);
 };
