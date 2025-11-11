@@ -484,7 +484,11 @@ struct Creature : GameObject {
 	__int64 money;
 	__int64 money_diff;
 
-	char pad5[0xBF0];
+	char pad6[0x248 + 16];
+
+	bool combat_mode;
+
+	char pad5[0x9A7 - 16];
 
 	// pos = 0xCD0 - C0
 	EffectCatalog* effectCatalog[17];
