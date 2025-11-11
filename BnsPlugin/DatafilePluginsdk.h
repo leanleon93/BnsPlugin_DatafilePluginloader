@@ -8,6 +8,7 @@
 #include "Data.h"
 #include "imgui_plugin_api.h"
 #include <cstdint>
+#include <d3d11.h>
 
 #ifdef _WIN32
 #define PLUGIN_EXPORT extern "C" __declspec(dllexport)
@@ -55,6 +56,8 @@ struct PluginInitParams : PluginParamsBase {
 	PluginImGuiAPI* imgui = nullptr;
 	RegisterDetoursFunc registerDetours = nullptr;
 	UnregisterDetoursFunc unregisterDetours = nullptr;
+
+	ID3D11Device* (*GetD3DDevice)() = nullptr;
 };
 
 struct PluginTableHandler {
