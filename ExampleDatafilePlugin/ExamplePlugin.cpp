@@ -379,8 +379,7 @@ static void __fastcall Init(PluginInitParams* params) {
 		g_GetD3DDevice = params->GetD3DDevice;
 	}
 	if (params && params->imgui && params->GetD3DDevice) {
-		bool ret = LoadTextureFromFile("datafilePlugins/test.png", &my_image_texture, &my_image_width, &my_image_height);
-		assert(ret);
+		LoadTextureFromFile("datafilePlugins/test.png", &my_image_texture, &my_image_width, &my_image_height);
 	}
 	if (params && params->dataManager) {
 		g_dataManager = params->dataManager;
