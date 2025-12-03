@@ -246,11 +246,11 @@ namespace Data {
 		void* _elreader;
 		char padding2[0x54];
 #ifdef _BNSKR
-		__declspec(align(4)) DrLoaderDef _loaderDefs[494];
+		__declspec(align(4)) DrLoaderDef _loaderDefs[498];
 #elif _BNSEU
-		__declspec(align(4)) DrLoaderDef _loaderDefs[494];
+		__declspec(align(4)) DrLoaderDef _loaderDefs[498];
 #else
-		__declspec(align(4)) DrLoaderDef _loaderDefs[494];
+		__declspec(align(4)) DrLoaderDef _loaderDefs[498];
 #endif
 	};
 }
