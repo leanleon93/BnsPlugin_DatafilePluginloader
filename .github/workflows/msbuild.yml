@@ -73,6 +73,7 @@ jobs:
       uses: microsoft/setup-msbuild@v2
       with:
         msbuild-architecture: x64
+        vs-version: '[18.0, )'
 
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
