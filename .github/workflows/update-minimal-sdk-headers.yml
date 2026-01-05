@@ -35,11 +35,11 @@ jobs:
           git checkout minimal-sdk-headers || git checkout -b minimal-sdk-headers
 
       - name: Copy latest headers from master
-        run: git checkout origin/master -- BnsPlugin/Data.h BnsPlugin/DatafilePluginsdk.h BnsPlugin/DrEl.h BnsPlugin/imgui_plugin_api.h
+        run: git checkout origin/master -- BnsPlugin/DataConstants.h BnsPlugin/Data.h BnsPlugin/DatafilePluginsdk.h BnsPlugin/DrEl.h BnsPlugin/imgui_plugin_api.h
 
 
       - name: Add header files
-        run: git add BnsPlugin/Data.h BnsPlugin/DatafilePluginsdk.h BnsPlugin/DrEl.h BnsPlugin/imgui_plugin_api.h
+        run: git add BnsPlugin/DataConstants.h BnsPlugin/Data.h BnsPlugin/DatafilePluginsdk.h BnsPlugin/DrEl.h BnsPlugin/imgui_plugin_api.h
       
       - name: Commit changes
         run: |

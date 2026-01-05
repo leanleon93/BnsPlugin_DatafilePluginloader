@@ -152,5 +152,11 @@
     <ClInclude Include="DataHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DataConstants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pluginversion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

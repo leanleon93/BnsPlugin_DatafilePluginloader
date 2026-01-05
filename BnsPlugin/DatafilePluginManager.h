@@ -20,6 +20,8 @@ struct PluginHandle {
 	std::string shadow_path; // copied DLL path (shadow copy)
 	bool load_failed = false;
 	std::string fail_reason;
+	PluginStatusFunc status = nullptr;
+	PluginCompatibilityFunc is_incompatible = nullptr;
 };
 
 void RegisterDetours(const HookFunctionParams* hooks, size_t count);

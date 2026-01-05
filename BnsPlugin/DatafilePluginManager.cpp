@@ -174,6 +174,7 @@ std::vector<std::string> DatafilePluginManager::ReloadAll() {
 	}
 	return results;
 }
+constexpr size_t kMaxStatusMessageLength = 256;
 
 std::vector<std::string> DatafilePluginManager::GetPluginStateText()
 {
@@ -194,27 +195,20 @@ std::vector<std::string> DatafilePluginManager::GetPluginStateText()
 		}
 		else if (handle->dll && handle->identifier && handle->version) {
 			line = std::string("[Loaded] ") + handle->identifier() + " v" + handle->version();
-			if (handle->tableHandlers.empty()) {
-				line += " (no handlers registered)";
+			if (handle->is_incompatible && handle->is_incompatible()) {
+				line = std::string("[Incompatible with current game version] ") + handle->identifier() + " v" + handle->version();
 			}
-			else {
-				line += " (handlers: ";
-				for (size_t i = 0; i < handle->tableHandlers.size(); ++i) {
-					const auto* th = handle->tableHandlers[i];
-					if (th && th->tableName) {
-						int requiredSize = WideCharToMultiByte(CP_UTF8, 0, th->tableName, -1, nullptr, 0, nullptr, nullptr);
-						if (requiredSize > 0) {
-							std::string utf8Name(requiredSize - 1, '\0'); // exclude null terminator
-							WideCharToMultiByte(CP_UTF8, 0, th->tableName, -1, utf8Name.data(), requiredSize, nullptr, nullptr);
-							line += utf8Name;
-						}
+			else if (handle->status) {
+				auto pluginInternalStatus = handle->status();
+				if (!pluginInternalStatus.success) {
+					std::string msg = pluginInternalStatus.message;
+					if (msg.length() > kMaxStatusMessageLength) {
+						msg = msg.substr(0, kMaxStatusMessageLength - 3) + "...";
 					}
-					else {
-						line += "(unknown)";
-					}
-					if (i + 1 < handle->tableHandlers.size()) line += ", ";
+					line = std::string("[Plugin Error] ") + handle->identifier() + " v" + handle->version();
+					if (!msg.empty())
+						line += " - " + msg;
 				}
-				line += ")";
 			}
 		}
 		else {
@@ -320,6 +314,8 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 	auto plugin_version = reinterpret_cast<PluginVersionFunc>(GetProcAddress(dll, "PluginVersion"));
 	auto tableHandlersFunc = reinterpret_cast<PluginTableHandlersFunc>(GetProcAddress(dll, "PluginTableHandlers"));
 	auto tableHandlerCountFunc = reinterpret_cast<PluginTableHandlerCountFunc>(GetProcAddress(dll, "PluginTableHandlerCount"));
+	auto statusFunc = reinterpret_cast<PluginStatusFunc>(GetProcAddress(dll, "PluginStatusCheck"));
+	auto isIncompatibleFunc = reinterpret_cast<PluginCompatibilityFunc>(GetProcAddress(dll, "IsIncompatible"));
 
 	if (!(identifier && api_version && plugin_version)) {
 		std::cerr << "Error: Missing required exports in " << plugin_path << "\n";
@@ -363,6 +359,8 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 	handle->version = plugin_version;
 	handle->last_write_time = current_write_time;
 	handle->shadow_path = shadow_path;
+	handle->status = statusFunc;
+	handle->is_incompatible = isIncompatibleFunc;
 	std::cout << "Loaded: " << identifier() << " (API v" << reported_api_version << ", Plugin v" << plugin_version() << ")\n";
 	// Call init if available
 	if (handle->init && handle->unregister) {

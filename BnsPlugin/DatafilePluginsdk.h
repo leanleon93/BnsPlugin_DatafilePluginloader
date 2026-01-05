@@ -16,6 +16,8 @@
 #define PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
+void SetCompatibilityError(bool value);
+
 constexpr int PLUGIN_API_VERSION = 12;
 
 // Define the HookFunction struct
@@ -30,6 +32,11 @@ struct HookFunctionParams {
 using RegisterDetoursFunc = void(*)(const HookFunctionParams* hooks, size_t count);
 using UnregisterDetoursFunc = void(*)(const HookFunctionParams* hooks, size_t count);
 using BnsClient_GetWorldFunc = World * (__fastcall*)();
+
+struct PluginStatus {
+	bool success = true;
+	std::string message;
+};
 
 struct PluginReturnData {
 	DrEl* drEl = nullptr;
@@ -326,6 +333,7 @@ inline bool IsVersionCompatible(PluginExecuteParams* params, GetVersionInfoFunc 
 			msg += L"<br /> Game: " + std::to_wstring(gameTableVersion.major_ver) + L"." + std::to_wstring(gameTableVersion.minor_ver);
 			msg += L"<br /> Plugin functionality for this table will be disabled.";
 			params->displayGameMessage(msg.c_str(), false, MessageType::SystemChat);
+			SetCompatibilityError(true);
 		}
 
 		it = versionCompatibleMap.find(params->table->_tabledef->type);
@@ -345,10 +353,15 @@ using PluginInitFunc = void (*)(PluginInitParams*);
 using PluginUnregisterFunc = void (*)();
 using PluginTableHandlerCountFunc = std::size_t(*)();
 using PluginTableHandlersFunc = const PluginTableHandler* (*)();
+using PluginStatusFunc = PluginStatus(*)();
+using PluginCompatibilityFunc = bool(*)();
 
 // Macros to enforce plugin exports
 #define DEFINE_PLUGIN_API_VERSION() \
-    PLUGIN_EXPORT int PluginApiVersion() { return PLUGIN_API_VERSION; }
+    PLUGIN_EXPORT int PluginApiVersion() { return PLUGIN_API_VERSION; } \
+	static bool compatibilityError; \
+    PLUGIN_EXPORT bool IsIncompatible() { return compatibilityError; } \
+    static void SetCompatibilityError(bool value) { compatibilityError = value; }
 
 #define DEFINE_PLUGIN_IDENTIFIER(name) \
     PLUGIN_EXPORT const char* PluginIdentifier() { return name; }
@@ -373,3 +386,6 @@ using PluginTableHandlersFunc = const PluginTableHandler* (*)();
         !IsVersionCompatible(params, __get_version_info)) { \
         return {}; \
     }
+
+#define DEFINE_PLUGIN_STATUS(func) \
+	PLUGIN_EXPORT PluginStatus PluginStatusCheck() { return func(); }

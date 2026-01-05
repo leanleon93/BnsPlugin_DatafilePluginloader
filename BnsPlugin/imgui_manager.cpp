@@ -10,6 +10,7 @@
 #include <windows.h>
 #include <fstream>
 #include <ctime>
+#include "pluginversion.h"
 
 static ID3D11Device* g_pd3dDevice = nullptr;
 static ID3D11DeviceContext* g_pd3dDeviceContext = nullptr;
@@ -233,7 +234,7 @@ static void CreateRenderTarget(IDXGISwapChain* pSwapChain)
 static void GlobalConfigUiPanel(void* userData) {
 	auto stateTexts = g_DatafilePluginManager ? g_DatafilePluginManager->GetPluginStateText() : std::vector<std::string>{ "Plugin manager not initialized." };
 	for (const auto& line : stateTexts) {
-		if (line.find("[Failed]") == 0) {
+		if (line.find("[Failed]") == 0 || line.find("[Plugin Error]") == 0 || line.find("[Incompatible with current game version]") == 0) {
 			ImGui::TextColored({ 1.0f, 0.2f, 0.2f, 1.0f }, "%s", line.c_str());
 		}
 		else if (line.find("[Loaded]") == 0) {
@@ -290,6 +291,16 @@ void ImGuiManager_Render()
 	}
 	if (g_ImGuiPanelVisible) {
 		ImGui::Begin("Datafile Plugins", &g_ImGuiPanelVisible, ImGuiWindowFlags_NoCollapse);
+		// Status bar at the top
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyle().Colors[ImGuiCol_MenuBarBg]);
+		ImGui::BeginChild("StatusBarTop", ImVec2(0, ImGui::GetFrameHeight()), false,
+			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		ImGui::Text("Plugin Manager v%s by LEaN", L_PLUGINLOADER_VERSION);
+		ImGui::EndChild();
+		ImGui::PopStyleColor();
+
+		ImGui::Separator();
+
 		if (ImGui::BeginMenu("Settings")) {
 			if (ImGui::MenuItem("Use Korean Font", nullptr, g_UseKoreanFont)) {
 				g_UseKoreanFont = !g_UseKoreanFont;

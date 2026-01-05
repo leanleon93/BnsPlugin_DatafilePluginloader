@@ -4,6 +4,7 @@
 #include <iostream>
 #include <set>
 #include <vector>
+#include "DataConstants.h"
 
 struct DataChunk
 {
@@ -245,12 +246,10 @@ namespace Data {
 		void* _aliasMap;
 		void* _elreader;
 		char padding2[0x54];
-#ifdef _BNSKR
-		__declspec(align(4)) DrLoaderDef _loaderDefs[498];
-#elif _BNSEU
-		__declspec(align(4)) DrLoaderDef _loaderDefs[498];
+#ifdef BNSKR
+		__declspec(align(4)) DrLoaderDef _loaderDefs[DR_LOADERDEFS_SIZE];
 #else
-		__declspec(align(4)) DrLoaderDef _loaderDefs[498];
+		__declspec(align(4)) DrLoaderDef _loaderDefs[DR_LOADERDEFS_SIZE];
 #endif
 	};
 }

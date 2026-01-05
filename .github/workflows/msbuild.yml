@@ -70,7 +70,9 @@ jobs:
         echo "new_version=$NEW_VER" >> $GITHUB_OUTPUT
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.2
+      uses: microsoft/setup-msbuild@v2
+      with:
+        msbuild-architecture: x64
 
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}

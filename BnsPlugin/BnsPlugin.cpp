@@ -258,6 +258,7 @@ static void InitDatafileService() {
 	constexpr auto sleep_duration = std::chrono::milliseconds(1000);
 	while (true) {
 		if (g_DatafileService->CheckIfDatamanagerReady()) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 			// Notify main thread
 			if (g_mainThreadInitCallback) {
 				g_runMainThreadInit = true;

@@ -11,8 +11,6 @@
 #include "stb_image.h"
 #include <deps/xorstr.hpp>
 
-
-
 static int g_panelHandle = 0;
 static int g_imageOverlayHandle = 0;
 static Data::DataManager* g_dataManager = nullptr;
@@ -438,8 +436,16 @@ PluginTableHandler handlers[] = {
 	{ L"text", &DatafileTextDetour }
 };
 
+static PluginStatus __fastcall GetPluginStatus() {
+	PluginStatus status;
+	status.success = false;
+	status.message = "ExampleDatafilePlugin test error.";
+	return status;
+}
+
 DEFINE_PLUGIN_API_VERSION()
 DEFINE_PLUGIN_IDENTIFIER("ExampleDatafilePlugin")
 DEFINE_PLUGIN_VERSION("3.1.1")
 DEFINE_PLUGIN_INIT(Init, Unregister)
 DEFINE_PLUGIN_TABLE_HANDLERS(handlers)
+DEFINE_PLUGIN_STATUS(GetPluginStatus)
