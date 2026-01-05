@@ -5,6 +5,7 @@ on:
     branches:
       - master   # trigger when master changes
     paths:
+      - 'BnsPlugin/DataConstants.h'
       - 'BnsPlugin/Data.h'
       - 'BnsPlugin/DatafilePluginsdk.h'
       - 'BnsPlugin/DrEl.h'
