@@ -361,7 +361,7 @@ using PluginCompatibilityFunc = bool(*)();
     PLUGIN_EXPORT int PluginApiVersion() { return PLUGIN_API_VERSION; } \
 	static bool compatibilityError; \
     PLUGIN_EXPORT bool IsIncompatible() { return compatibilityError; } \
-    static void SetCompatibilityError(bool value) { compatibilityError = value; }
+    void SetCompatibilityError(bool value) { compatibilityError = value; }
 
 #define DEFINE_PLUGIN_IDENTIFIER(name) \
     PLUGIN_EXPORT const char* PluginIdentifier() { return name; }
