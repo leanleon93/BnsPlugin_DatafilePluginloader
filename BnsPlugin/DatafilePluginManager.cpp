@@ -161,15 +161,33 @@ std::string DatafilePluginManager::ReloadPlugin(std::string_view plugin_path) {
 
 std::vector<std::string> DatafilePluginManager::ReloadAll() {
 	std::vector<std::string> results;
-	// Remove all plugin handles so they will be forcibly loaded next time
-	//UnloadPlugins();
-	_table_compare_cache.clear();
-	_table_plugin_cache.clear();
+
+	// Gather all dll in the plugin dir
+	std::unordered_set<std::string> currentDlls;
 	for (const auto& entry : fs::directory_iterator(_plugins_folder)) {
 		if (entry.path().extension() == ".dll") {
-			if (auto res = ReloadPluginIfChanged(entry.path().string()); !res.empty()) {
-				results.push_back(std::move(res));
-			}
+			currentDlls.insert(entry.path().string());
+		}
+	}
+
+	// Unload plugins whose DLLs are no longer present
+	std::vector<std::string> toUnload;
+	for (const auto& kv : _plugins) {
+		if (currentDlls.find(kv.first) == currentDlls.end()) {
+			toUnload.push_back(kv.first);
+		}
+	}
+	for (const auto& pluginPath : toUnload) {
+		UnloadPlugin(pluginPath);
+	}
+
+	_table_compare_cache.clear();
+	_table_plugin_cache.clear();
+
+	// Reload or load new plugins
+	for (const auto& entry : currentDlls) {
+		if (auto res = ReloadPluginIfChanged(entry); !res.empty()) {
+			results.push_back(std::move(res));
 		}
 	}
 	return results;

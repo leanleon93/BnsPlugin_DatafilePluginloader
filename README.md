@@ -6,7 +6,7 @@ A plugin for BnS NEO that enables dynamic loading and hot-reloading of "datafile
 
 ## Overview
 
-**BnsPlugin_DatafilePluginloader** acts as an additional plugin loader for BnS NEO, allowing you to load, update, and reload lightweight datafile hook plugins without restarting the game. For clarity, this layer is referred to as "datafile plugins" throughout this readme.
+**DatafilePluginloader** acts as an additional plugin loader for BnS NEO, allowing you to load, update, and reload lightweight datafile hook plugins without restarting the game. For clarity, this layer is referred to as "datafile plugins" throughout this readme.
 
 ---
 
@@ -65,7 +65,7 @@ graph TD
 - **Data Editing Example:** See the `ArtifactDatafilePlugin` project.
 - **Animation Filter:** See the [BnsDatafilePlugin_AnimationRemover](https://github.com/leanleon93/BnsDatafilePlugin_AnimationRemover) project.
 - **Item Swapping:** See the [BnsDatafilePlugin_ItemSwap](https://github.com/leanleon93/BnsDatafilePlugin_ItemSwap) project.
-- **Template:** Build your own using the [DatafilePluginTemplate](https://github.com/leanleon93/BnsDatafilePlugin_Template) project.
+- **Template:** Build your own using the [DatafilePluginTemplate](https://github.com/leanleon93/BnsDatafilePlugin_CmakeTemplate) project.
 ---
 
 ## Notes
