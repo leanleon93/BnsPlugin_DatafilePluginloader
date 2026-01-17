@@ -472,7 +472,7 @@ struct Creature : GameObject {
 	char pad9[12];
 	signed char level;
 	char pad8[3];
-	int exp;
+	__int64 exp;
 	signed char mastery_level;
 	char pad7[3];
 	__int64 mastery_exp;
@@ -487,27 +487,11 @@ struct Creature : GameObject {
 
 	bool combat_mode;
 
-	char pad5[0x9A7 - 16];
+	char pad5[0x9A7 + 8];
 
 	// pos = 0xCD0 - C0
 	EffectCatalog* effectCatalog[17];
-	char radius[4];
-	char pad4[4];
-	__int64 _scoreHP;
-	bool _outofSightByWarp;
-	char pad3[7];
-	char pad2[0x10];
-	bool _notTargetableByEffect;
-	char pad1[7];
-	void* _playingActions;
-	char _soulMaskId;
-	char _soulMaskId2;
-	bool _playedCombatDirecting;
-	bool _directingFlagStun;
-	bool _directingFlagDown;
-	bool _directingFlagKneel;
-	bool _directingFlagKnockBack;
-	char pad[1];
+	char pad[0x40];
 	//end = 0xCD0
 };
 
@@ -526,6 +510,9 @@ const struct PresentationObject {
 
 const struct PTCreature : PresentationObject {
 	char pad_0001[0x570 + 0x78];
+#ifdef BNSKR
+	char pad_0002[0x18];
+#endif
 };
 
 struct PTControlledCreature : PTCreature {
