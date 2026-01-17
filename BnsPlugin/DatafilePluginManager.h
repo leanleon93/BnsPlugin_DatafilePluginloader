@@ -7,6 +7,7 @@
 #include <memory>
 #include <Windows.h>
 #include "DatafilePluginsdk.h"
+#include <cstdarg>
 
 // RAII / data handle for a plugin. Stored behind stable unique_ptr so pointers cached elsewhere remain valid.
 struct PluginHandle {
@@ -26,6 +27,7 @@ struct PluginHandle {
 
 void RegisterDetours(const HookFunctionParams* hooks, size_t count);
 void UnregisterDetours(const HookFunctionParams* hooks, size_t count);
+uintptr_t FindPatternInMemory(std::string pattern);
 
 class DatafilePluginManager {
 public:

@@ -134,6 +134,16 @@ static __int64* HookDataManager(const char* pattern, int offset2) {
 	return nullptr;
 }
 
+uintptr_t FindPatternInMemory(std::string pattern) {
+	if (pattern.empty()) return NULL;
+	auto it = std::search(data.begin(), data.end(), pattern_searcher(pattern.c_str()));
+	if (it != data.end()) {
+		uintptr_t address = (uintptr_t)&it[0];
+		return address;
+	}
+	return NULL;
+}
+
 void RegisterDetours(const HookFunctionParams* hooks, size_t count) {
 	DetourTransactionBegin();
 	DetourUpdateThread(NtCurrentThread());

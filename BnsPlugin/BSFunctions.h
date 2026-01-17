@@ -78,5 +78,3 @@ public:
 	static void DisplayScrollingTextHeadlineBoss(void*, _AddInstantNotification*, const wchar_t*, bool playSound);
 };
 #endif // !BSMessaging_H
-
-uintptr_t GetAddress(uintptr_t AddressOfCall, int index, int length);

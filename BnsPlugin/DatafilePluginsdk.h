@@ -9,6 +9,7 @@
 #include "imgui_plugin_api.h"
 #include <cstdint>
 #include <d3d11.h>
+#include <cstdarg>
 
 #ifdef _WIN32
 #define PLUGIN_EXPORT extern "C" __declspec(dllexport)
@@ -32,6 +33,7 @@ struct HookFunctionParams {
 using RegisterDetoursFunc = void(*)(const HookFunctionParams* hooks, size_t count);
 using UnregisterDetoursFunc = void(*)(const HookFunctionParams* hooks, size_t count);
 using BnsClient_GetWorldFunc = World * (__fastcall*)();
+using FindPatternInMemoryFunc = uintptr_t(*)(std::string pattern);
 
 struct PluginStatus {
 	bool success = true;
@@ -65,6 +67,7 @@ struct PluginInitParams : PluginParamsBase {
 	UnregisterDetoursFunc unregisterDetours = nullptr;
 
 	ID3D11Device* (*GetD3DDevice)() = nullptr;
+	FindPatternInMemoryFunc findPatternInMemory = nullptr;
 };
 
 struct PluginTableHandler {
@@ -312,6 +315,15 @@ inline int GetRecordCount(
 ) {
 	auto table = GetTable(dataManager, tableName);
 	return GetRecordCount(table);
+}
+
+inline uintptr_t GetAddress(uintptr_t AddressOfCall, int index, int length)
+{
+	if (!AddressOfCall)
+		return 0;
+
+	long delta = *(long*)(AddressOfCall + index);
+	return (AddressOfCall + delta + length);
 }
 
 using GetVersionInfoFunc = VersionInfo(*)(short);
