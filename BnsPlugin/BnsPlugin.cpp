@@ -21,9 +21,12 @@
 #pragma comment(lib, "dxgi.lib")
 
 // Global state
+
 static gsl::span<uint8_t> data;
 static pe::module* module = nullptr;
 static uintptr_t handle = 0;
+// Cache for all readable section spans
+static std::vector<gsl::span<const uint8_t>> readable_section_spans;
 
 static void ScannerSetup() {
 #ifdef _DEBUG
@@ -37,6 +40,14 @@ static void ScannerSetup() {
 		});
 	if (it != sections.end()) {
 		data = it->as_bytes();
+	}
+
+	// Populate the cache for all readable section spans
+	readable_section_spans.clear();
+	for (const auto& section : sections) {
+		if (section.Characteristics & IMAGE_SCN_MEM_READ) {
+			readable_section_spans.push_back(section.as_bytes());
+		}
 	}
 }
 
@@ -134,7 +145,8 @@ static __int64* HookDataManager(const char* pattern, int offset2) {
 	return nullptr;
 }
 
-uintptr_t FindPatternInMemory(std::string pattern) {
+// Only searches code sections
+uintptr_t FindPatternInMemory(const std::string& pattern) {
 	if (pattern.empty()) return NULL;
 	auto it = std::search(data.begin(), data.end(), pattern_searcher(pattern.c_str()));
 	if (it != data.end()) {
@@ -142,6 +154,20 @@ uintptr_t FindPatternInMemory(std::string pattern) {
 		return address;
 	}
 	return NULL;
+}
+
+// Searches all cached readable sections (including .rdata, .data, etc.) for the given pattern.
+uintptr_t FindPatternInAllReadableSections(const std::string& pattern) {
+	if (pattern.empty() || readable_section_spans.empty())
+		return 0;
+
+	for (const auto& section_data : readable_section_spans) {
+		auto it = std::search(section_data.begin(), section_data.end(), pattern_searcher(pattern.c_str()));
+		if (it != section_data.end()) {
+			return (uintptr_t)&it[0];
+		}
+	}
+	return 0;
 }
 
 void RegisterDetours(const HookFunctionParams* hooks, size_t count) {

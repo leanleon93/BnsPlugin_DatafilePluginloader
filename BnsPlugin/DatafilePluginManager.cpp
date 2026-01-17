@@ -394,6 +394,7 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 		params.unregisterDetours = &UnregisterDetours;
 		params.GetD3DDevice = &GetD3DDevice;
 		params.findPatternInMemory = &FindPatternInMemory;
+		params.findPatternInAllReadableSections = &FindPatternInAllReadableSections;
 		handle->init(&params);
 	}
 	result = std::string(handle->identifier()) + " v" + handle->version();

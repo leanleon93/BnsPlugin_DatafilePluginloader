@@ -33,7 +33,8 @@ struct HookFunctionParams {
 using RegisterDetoursFunc = void(*)(const HookFunctionParams* hooks, size_t count);
 using UnregisterDetoursFunc = void(*)(const HookFunctionParams* hooks, size_t count);
 using BnsClient_GetWorldFunc = World * (__fastcall*)();
-using FindPatternInMemoryFunc = uintptr_t(*)(std::string pattern);
+using FindPatternInMemoryFunc = uintptr_t(*)(const std::string& pattern);
+using FindPatternInAllReadableSectionsFunc = uintptr_t(*)(const std::string& pattern);
 
 struct PluginStatus {
 	bool success = true;
@@ -67,7 +68,9 @@ struct PluginInitParams : PluginParamsBase {
 	UnregisterDetoursFunc unregisterDetours = nullptr;
 
 	ID3D11Device* (*GetD3DDevice)() = nullptr;
+
 	FindPatternInMemoryFunc findPatternInMemory = nullptr;
+	FindPatternInAllReadableSectionsFunc findPatternInAllReadableSections = nullptr;
 };
 
 struct PluginTableHandler {

@@ -27,7 +27,8 @@ struct PluginHandle {
 
 void RegisterDetours(const HookFunctionParams* hooks, size_t count);
 void UnregisterDetours(const HookFunctionParams* hooks, size_t count);
-uintptr_t FindPatternInMemory(std::string pattern);
+uintptr_t FindPatternInMemory(const std::string& pattern);
+uintptr_t FindPatternInAllReadableSections(const std::string& pattern);
 
 class DatafilePluginManager {
 public:
