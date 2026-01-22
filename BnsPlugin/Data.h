@@ -510,9 +510,7 @@ const struct PresentationObject {
 
 const struct PTCreature : PresentationObject {
 	char pad_0001[0x570 + 0x78];
-#ifdef BNSKR
 	char pad_0002[0x18];
-#endif
 };
 
 struct PTControlledCreature : PTCreature {
