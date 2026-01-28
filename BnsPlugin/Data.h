@@ -290,7 +290,7 @@ struct FWindowsPlatformTime {
 
 struct PreciseTimer // sizeof=0x10
 {
-	unsigned __int64 _startTime;
+	unsigned __int64 _startTime; //QueryPerformanceCounter
 	FWindowsPlatformTime _timer;
 	char pad0[3];
 	float _limit;
@@ -449,7 +449,9 @@ struct EffectCatalog {
 	struct Item {
 		EffectProperty prop;
 		DrEl* effect; //BnsTables::EU::effect_Record* or BnsTables::KR::effect_Record* This is to avoid including BnsTables dependencies
-		char pad[0x10];
+		int _cacheChunkIndex;
+		bool _makeCopy;
+		char pad[3];
 		PreciseTimer durationTimer;
 	};
 	Creature* owner;
@@ -466,7 +468,14 @@ struct PropString {
 };
 
 struct Creature : GameObject {
-	char pad10[0x80];
+	void* unkptr;
+	void* unkptr2;
+	void* unkptr3;
+	__int16 world_id;
+	signed char race;
+	signed char sex;
+	signed char job;
+	char pad10[0x63];
 	PropString name;
 
 	char pad9[12];
