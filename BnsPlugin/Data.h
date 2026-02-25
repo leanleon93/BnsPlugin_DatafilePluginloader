@@ -496,7 +496,7 @@ struct Creature : GameObject {
 
 	bool combat_mode;
 
-	char pad5[0x9A7 + 8];
+	char pad5[0x9A7 + 8 + 16];
 
 	// pos = 0xCD0 - C0
 	EffectCatalog* effectCatalog[17];
