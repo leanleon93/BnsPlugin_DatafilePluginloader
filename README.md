@@ -1,12 +1,12 @@
 # BnsPlugin_DatafilePluginloader
 
-A plugin for BnS NEO that enables dynamic loading and hot-reloading of "datafile plugins" at runtime.
+A plugin for BnS that enables dynamic loading and hot-reloading of "datafile plugins" at runtime.
 
 ---
 
 ## Overview
 
-**DatafilePluginloader** acts as an additional plugin loader for BnS NEO, allowing you to load, update, and reload lightweight datafile hook plugins without restarting the game. For clarity, this layer is referred to as "datafile plugins" throughout this readme.
+**DatafilePluginloader** acts as an additional plugin loader for BnS, allowing you to load, update, and reload lightweight datafile hook plugins without restarting the game. For clarity, this layer is referred to as "datafile plugins" throughout this readme.
 
 ---
 
@@ -18,7 +18,7 @@ A plugin for BnS NEO that enables dynamic loading and hot-reloading of "datafile
 
 ```mermaid
 graph TD
-    D["BnS NEO Game"] --> C["pilao pluginloader<br />(winmm.dll)"]
+    D["BnS Game"] --> C["pilao pluginloader<br />(winmm.dll)"]
     C --> B["DatafilePluginloader<br />(this project, provides datamanager and ImGui setup)"]
     B --> A["datafile plugins<br />(hot reloadable, can edit game data and extend gui)"]
 ```
@@ -45,7 +45,7 @@ graph TD
 ## Usage
 
 1. **Install datafile pluginloader:**
-   - Place `DatafilePluginloader.dll` into the `plugins` folder of your BnS NEO installation (where `BNSR.exe` is located).
+   - Place `DatafilePluginloader.dll` into the `plugins` folder of your BnS installation (where `BNSR.exe` is located).
 
 2. **Create the plugin folder:**
    - In the same directory as `BNSR.exe`, create a folder named `datafilePlugins` (next to the existing `plugins` folder).
