@@ -19,7 +19,7 @@ struct DataChunk
 	DrEl* elPtrArray;
 	unsigned int refCount;
 	DataChunk* nextChunk;
-	DataChunk* prevChunk;
+	//DataChunk* prevChunk;
 };
 struct DrTableDef;
 struct DrCacheData
@@ -38,7 +38,8 @@ struct DrCacheData
 	DrCacheData::ChunkList _dataChunkList;
 	const DrTableDef* _tableDef;
 	void* _tableCacheInfo;
-	char padding[0x20];
+	std::wstring _tableName;
+	//char padding[0x20];
 };
 
 #pragma pack(push, 1)
@@ -496,7 +497,13 @@ struct Creature : GameObject {
 
 	bool combat_mode;
 
+#if defined(_BNSKR) || defined(BNSKR)
+	char pad5[0x9A7 + 8 + 16 + 16];
+#elif defined(_BNSEU) || defined(BNSEU)
 	char pad5[0x9A7 + 8 + 16];
+#else
+	char pad5[0x9A7 + 8 + 16];
+#endif
 
 	// pos = 0xCD0 - C0
 	EffectCatalog* effectCatalog[17];
