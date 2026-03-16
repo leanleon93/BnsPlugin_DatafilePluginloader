@@ -1,13 +1,13 @@
 #pragma once
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 #include <filesystem>
 #include <memory>
 #include <Windows.h>
 #include "DatafilePluginsdk.h"
 #include <cstdarg>
+#include "hash_table8.hpp"
 
 // RAII / data handle for a plugin. Stored behind stable unique_ptr so pointers cached elsewhere remain valid.
 struct PluginHandle {
@@ -41,17 +41,18 @@ public:
 	[[nodiscard]] std::string ReloadPlugin(std::string_view plugin_path);
 	[[nodiscard]] std::vector<std::string> ReloadAll();
 	std::vector<std::string> GetPluginStateText();
-	std::unordered_map<std::string, std::unique_ptr<PluginHandle>>* GetPlugins() { return &_plugins; }
+	emhash8::HashMap<std::string, std::unique_ptr<PluginHandle>>& GetPlugins() { return _plugins; }
 private:
 	std::string _plugins_folder; // source folder for plugins
 	const std::string _shadow_dir_path; // temp shadow dir where we load from
 	// key: original dll path -> stable owning pointer for PluginHandle
-	std::unordered_map<std::string, std::unique_ptr<PluginHandle>> _plugins;
-	// caches
-	mutable std::unordered_map<std::wstring, bool> _table_compare_cache; // table name -> any plugin registered?
-	mutable std::unordered_map<std::wstring, std::vector<std::pair<PluginHandle*, const PluginTableHandler*>>> _table_plugin_cache; // table name -> (plugin, handler) list
+	emhash8::HashMap<std::string, std::unique_ptr<PluginHandle>> _plugins;
 
-	[[nodiscard]] bool PluginForTableIsRegistered(const wchar_t* table_name) const;
+	// caches
+	emhash8::HashMap<std::wstring, bool> _table_compare_cache; // table name -> any plugin registered?
+	emhash8::HashMap<std::wstring, std::vector<std::pair<PluginHandle*, const PluginTableHandler*>>> _table_plugin_cache; // table name -> (plugin, handler) list
+
+	[[nodiscard]] bool PluginForTableIsRegistered(const wchar_t* table_name);
 	[[nodiscard]] std::string ReloadPluginIfChanged(std::string_view plugin_path);
 	[[nodiscard]] std::string CopyToShadow(std::string_view plugin_path) const;
 	void ensure_shadow_dir() const;

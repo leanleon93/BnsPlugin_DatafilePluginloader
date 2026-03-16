@@ -33,6 +33,9 @@ static DrEl* oFind_b8Wrapper(DrMultiKeyTable* thisptr, unsigned __int64 key) {
 #include <unordered_set>
 #include "BSFunctions.h"
 #include <codecvt>
+#include <wchar.h>
+#include "DataConstants.h"
+#include <algorithm>
 static void set_hidden_attribute(const std::string& path) {
 	SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_DIRECTORY);
 }
@@ -84,6 +87,7 @@ DatafilePluginManager::DatafilePluginManager(const std::string& folder)
 			std::error_code ec; fs::remove(entry.path(), ec);
 		}
 	}
+	_table_compare_cache.reserve(DR_LOADERDEFS_SIZE);
 	ReloadAll();
 }
 
@@ -92,16 +96,17 @@ DatafilePluginManager::~DatafilePluginManager() {
 }
 
 void DatafilePluginManager::UnloadPlugin(std::string_view plugin_path) {
-	if (auto it = _plugins.find(std::string(plugin_path)); it != _plugins.end()) {
-		PluginHandle* handle = it->second.get();
+	std::string pluginPathStr = std::string(plugin_path);
+	if (auto* pluginValue = _plugins.try_get(pluginPathStr); pluginValue) {
+		PluginHandle* handle = (*pluginValue).get();
 		if (handle && handle->dll) {
 			for (const auto* handlerPtr : handle->tableHandlers) {
 				if (!handlerPtr || !handlerPtr->tableName) continue;
 				std::wstring tname(handlerPtr->tableName);
-				if (auto it2 = _table_plugin_cache.find(tname); it2 != _table_plugin_cache.end()) {
-					auto& vec = it2->second;
+				if (auto* pvalue = _table_plugin_cache.try_get(tname); pvalue) {
+					auto& vec = *pvalue;
 					vec.erase(std::remove_if(vec.begin(), vec.end(), [&](const auto& p) { return p.first == handle && p.second == handlerPtr; }), vec.end());
-					if (vec.empty()) _table_plugin_cache.erase(it2);
+					if (vec.empty()) _table_plugin_cache.erase(tname);
 				}
 			}
 			if (handle->unregister) {
@@ -117,14 +122,14 @@ void DatafilePluginManager::UnloadPlugin(std::string_view plugin_path) {
 		if (handle && !handle->shadow_path.empty()) {
 			std::error_code ec; fs::remove(handle->shadow_path, ec);
 		}
-		_plugins.erase(it);
+		_plugins.erase(pluginPathStr);
 		_table_compare_cache.clear();
 	}
 }
 
 void DatafilePluginManager::UnloadPlugins() {
-	for (auto& kv : _plugins) {
-		PluginHandle* handle = kv.second.get();
+	for (const auto& [key, value] : _plugins) {
+		PluginHandle* handle = value.get();
 		if (handle && handle->dll) {
 			if (handle->unregister) {
 				try {
@@ -172,9 +177,9 @@ std::vector<std::string> DatafilePluginManager::ReloadAll() {
 
 	// Unload plugins whose DLLs are no longer present
 	std::vector<std::string> toUnload;
-	for (const auto& kv : _plugins) {
-		if (currentDlls.find(kv.first) == currentDlls.end()) {
-			toUnload.push_back(kv.first);
+	for (const auto& [key, value] : _plugins) {
+		if (currentDlls.find(key) == currentDlls.end()) {
+			toUnload.push_back(key);
 		}
 	}
 	for (const auto& pluginPath : toUnload) {
@@ -197,8 +202,8 @@ constexpr size_t kMaxStatusMessageLength = 256;
 std::vector<std::string> DatafilePluginManager::GetPluginStateText()
 {
 	std::vector<std::string> results;
-	for (const auto& kv : _plugins) {
-		const auto* handle = kv.second.get();
+	for (const auto& [key, value] : _plugins) {
+		const auto* handle = value.get();
 		if (!handle) continue;
 		std::string line;
 		if (handle->load_failed) {
@@ -207,7 +212,7 @@ std::vector<std::string> DatafilePluginManager::GetPluginStateText()
 				line += handle->identifier();
 			}
 			else {
-				line += kv.first + " (unknown plugin)";
+				line += key + " (unknown plugin)";
 			}
 			line += " - " + handle->fail_reason;
 		}
@@ -230,29 +235,29 @@ std::vector<std::string> DatafilePluginManager::GetPluginStateText()
 			}
 		}
 		else {
-			line = "[Unknown state] " + kv.first;
+			line = "[Unknown state] " + key;
 		}
 		results.push_back(std::move(line));
 	}
 	return results;
 }
 
-bool DatafilePluginManager::PluginForTableIsRegistered(const wchar_t* table_name) const {
+bool DatafilePluginManager::PluginForTableIsRegistered(const wchar_t* table_name) {
 	if (!table_name) return false;
 	std::wstring key(table_name);
-	if (auto it = _table_compare_cache.find(key); it != _table_compare_cache.end()) {
-		return it->second;
+	if (auto* pvalue = _table_compare_cache.try_get(key); pvalue) {
+		return *pvalue;
 	}
 	bool found = false;
-	for (const auto& kv : _plugins) {
-		const auto* handle = kv.second.get();
+	for (const auto& [key, value] : _plugins) {
+		const auto* handle = value.get();
 		if (!handle || !handle->dll) continue;
 		for (const auto* handler : handle->tableHandlers) {
 			if (handler && handler->tableName && wcscmp(handler->tableName, table_name) == 0) { found = true; break; }
 		}
 		if (found) break;
 	}
-	_table_compare_cache.emplace(std::move(key), found);
+	_table_compare_cache.emplace_unique(std::move(key), found);
 	return found;
 }
 
@@ -267,8 +272,8 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 	auto current_write_time = fs::last_write_time(orig_path);
 
 	PluginHandle* handle = nullptr;
-	if (auto it = _plugins.find(plugin_path); it != _plugins.end()) {
-		handle = it->second.get();
+	if (auto* pvalue = _plugins.try_get(plugin_path); pvalue) {
+		handle = (*pvalue).get();
 	}
 	else {
 		handle = (_plugins[plugin_path] = std::make_unique<PluginHandle>()).get();
@@ -284,10 +289,10 @@ std::string DatafilePluginManager::ReloadPluginIfChanged(std::string_view plugin
 		for (const auto* handlerPtr : handle->tableHandlers) {
 			if (!handlerPtr || !handlerPtr->tableName) continue;
 			std::wstring tname(handlerPtr->tableName);
-			if (auto it = _table_plugin_cache.find(tname); it != _table_plugin_cache.end()) {
-				auto& vec = it->second;
+			if (auto* pvalue = _table_plugin_cache.try_get(tname); pvalue) {
+				auto& vec = *pvalue;
 				vec.erase(std::remove_if(vec.begin(), vec.end(), [&](const auto& p) { return p.first == handle && p.second == handlerPtr; }), vec.end());
-				if (vec.empty()) _table_plugin_cache.erase(it);
+				if (vec.empty()) _table_plugin_cache.erase(tname);
 			}
 		}
 		if (handle->unregister) {
@@ -406,11 +411,11 @@ DrEl* DatafilePluginManager::ExecuteAll(PluginExecuteParams* params) {
 	if (!PluginForTableIsRegistered(params->table->_tabledef->name)) return nullptr;
 
 	std::wstring key(params->table->_tabledef->name);
-	auto it = _table_plugin_cache.find(key);
-	if (it == _table_plugin_cache.end()) {
+	auto pvalue = _table_plugin_cache.try_get(key);
+	if (!pvalue) {
 		std::vector<std::pair<PluginHandle*, const PluginTableHandler*>> handles;
-		for (auto& kv : _plugins) {
-			PluginHandle* ph = kv.second.get();
+		for (const auto& [key, value] : _plugins) {
+			PluginHandle* ph = value.get();
 			if (!ph || !ph->dll) continue;
 			for (const auto* handler : ph->tableHandlers) {
 				if (handler && handler->tableName && wcscmp(handler->tableName, params->table->_tabledef->name) == 0) {
@@ -418,10 +423,11 @@ DrEl* DatafilePluginManager::ExecuteAll(PluginExecuteParams* params) {
 				}
 			}
 		}
-		it = _table_plugin_cache.emplace(key, std::move(handles)).first;
+		_table_plugin_cache.insert_unique(key, std::move(handles));
+		pvalue = &_table_plugin_cache.at(key);
 	}
 
-	for (const auto& pluginTuple : it->second) {
+	for (const auto& pluginTuple : *pvalue) {
 		const auto* handler = pluginTuple.second;
 		if (handler && handler->executeFunc) {
 #if defined(_MSC_VER)
