@@ -502,12 +502,13 @@ struct Creature : GameObject {
 	__int64 immune_effect_attribute;
 	__int64 immune_effect_attribute_2;
 	__int64 immune_effect_attribute_3;
-	__int64 effect_flag;
-	__int64 effect_flag_2;
-	__int64 effect_flag_3;
-	__int64 effect_flag_4;
+	//Naming is rather confusing. These are bitmasks.
+	__int64 effect_flag;	// flags 1–64
+	__int64 effect_flag_2;	// flags 65–128
+	__int64 effect_flag_3;	// flags 129–192
+	__int64 effect_flag_4;	// flags 193–256
 
-	char pad5[0x248 + 16 - 0x58 - (10 * 8) - 0x08];
+	char pad5[0x248 + 16 - 0x58 - (10 * 8) - 0x08]; //lord help me
 
 	bool combat_mode;
 
