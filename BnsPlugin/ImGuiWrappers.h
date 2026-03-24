@@ -253,6 +253,11 @@ static bool ImGuiWrapper_IsMouseClicked(int button) {
 	return ImGui::IsMouseClicked(button);
 }
 
+static std::pair<float, float> ImGuiCalcTextSizeWrapper(const char* text, const char* text_end, bool hide_text_after_double_hash, float wrap_width) {
+	ImVec2 size = ImGui::CalcTextSize(text, text_end, hide_text_after_double_hash, wrap_width);
+	return { size.x, size.y };
+}
+
 PluginImGuiAPI g_imguiApi = {
 	&ImGui::Text,
 	&ImGuiWrapper_TextColored,
@@ -307,6 +312,9 @@ PluginImGuiAPI g_imguiApi = {
 	&ImGuiWrapper_DisplayImageAtPos,
 	&ImGuiWrapper_GetMousePos,
 	&ImGui::IsMouseDown,
-	&ImGui::IsMouseClicked
+	&ImGui::IsMouseClicked,
+	&ImGui::SetColumnWidth,
+	&ImGui::GetFrameHeight,
+	&ImGuiCalcTextSizeWrapper
 };
 #pragma endregion

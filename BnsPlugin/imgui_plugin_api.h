@@ -107,4 +107,9 @@ struct PluginImGuiAPI {
 	std::pair<float, float>(*GetMousePos)();
 	bool (*IsMouseDown)(int button);
 	bool (*IsMouseClicked)(int button, bool repeat);
+
+	//Column spacing
+	void (*SetColumnWidth)(int column_index, float width);
+	float (*GetFrameHeight)();
+	std::pair<float, float>(*CalcTextSize)(const char* text, const char* text_end, bool hide_text_after_double_hash, float wrap_width);
 };
