@@ -468,6 +468,7 @@ struct PropString {
 	wchar_t* str;
 };
 
+#pragma pack(push, 1)
 struct Creature : GameObject {
 	void* unkptr;
 	void* unkptr2;
@@ -486,23 +487,37 @@ struct Creature : GameObject {
 	signed char mastery_level;
 	char pad7[3];
 	__int64 mastery_exp;
-
+	char padhp[4];
 	__int64 hp;
 
 	__int64 guard_gauge;
 	__int64 money;
 	__int64 money_diff;
 
-	char pad6[0x248 + 16];
+	char pad6[0x58 + 0x08];
+
+	__int64 effect_attribute;
+	__int64 effect_attribute_2;
+	__int64 effect_attribute_3;
+	__int64 immune_effect_attribute;
+	__int64 immune_effect_attribute_2;
+	__int64 immune_effect_attribute_3;
+	//Naming is rather confusing. These are bitmasks.
+	__int64 effect_flag;	// flags 1–64
+	__int64 effect_flag_2;	// flags 65–128
+	__int64 effect_flag_3;	// flags 129–192
+	__int64 effect_flag_4;	// flags 193–256
+
+	char pad5[0x248 + 16 - 0x58 - (10 * 8) - 0x08]; //lord help me
 
 	bool combat_mode;
 
 #if defined(_BNSKR) || defined(BNSKR)
-	char pad5[0x9A7 + 8 + 16 + 16];
+	char pad4[0x9A7 + 8 + 16 + 16];
 #elif defined(_BNSEU) || defined(BNSEU)
-	char pad5[0x9A7 + 8 + 16];
+	char pad4[0x9A7 + 8 + 16];
 #else
-	char pad5[0x9A7 + 8 + 16];
+	char pad4[0x9A7 + 8 + 16];
 #endif
 
 	// pos = 0xCD0 - C0
@@ -511,12 +526,16 @@ struct Creature : GameObject {
 	//end = 0xCD0
 };
 
-#pragma pack(push, 1)
 struct Npc : Creature {
 	//char padding[0xCD0];
 	void* npcRecord; // BnsTables::EU::npc_Record* or BnsTables::KR::npc_Record* This is to avoid including BnsTables dependencies
 	char pad2[0x40 - 0x08];
 	__int64 _finalHp;
+};
+
+struct NpcDeadBody : GameObject {
+	__int64 dataId;
+	void* npcRecord; // BnsTables::EU::npc_Record* or BnsTables::KR::npc_Record* This is to avoid including BnsTables dependencies
 };
 
 const struct PresentationObject {
