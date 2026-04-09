@@ -253,9 +253,35 @@ static bool ImGuiWrapper_IsMouseClicked(int button) {
 	return ImGui::IsMouseClicked(button);
 }
 
-static std::pair<float, float> ImGuiCalcTextSizeWrapper(const char* text, const char* text_end, bool hide_text_after_double_hash, float wrap_width) {
+static std::pair<float, float> ImGuiWrapper_CalcTextSize(const char* text, const char* text_end, bool hide_text_after_double_hash, float wrap_width) {
 	ImVec2 size = ImGui::CalcTextSize(text, text_end, hide_text_after_double_hash, wrap_width);
 	return { size.x, size.y };
+}
+
+static std::pair<float, float> ImGuiWrapper_GetMouseDragDelta(int button, float lock_threshold) {
+	ImVec2 delta = ImGui::GetMouseDragDelta(button, lock_threshold);
+	return { delta.x, delta.y };
+}
+
+static void ImGuiWrapper_PushStyleColor(int imgui_col, float _r, float _g, float _b, float _a) {
+	ImGui::PushStyleColor(imgui_col, ImVec4(_r, _g, _b, _a));
+}
+
+static void ImGuiWrapper_PopStyleColor(int count) {
+	ImGui::PopStyleColor(count);
+}
+
+static void ImGuiWrapper_ProgressBar(float fraction, float width, float height, const char* overlay) {
+	ImGui::ProgressBar(fraction, ImVec2(width, height), overlay);
+}
+
+static std::pair<float, float> ImGuiWrapper_GetDisplaySize() {
+	ImVec2 size = ImGui::GetIO().DisplaySize;
+	return { size.x, size.y };
+}
+
+static void ImGuiWrapper_SetNextWindowPosWithPivot(float x, float y, int cond, float pivotX, float pivotY) {
+	ImGui::SetNextWindowPos(ImVec2(x, y), cond, ImVec2(pivotX, pivotY));
 }
 
 PluginImGuiAPI g_imguiApi = {
@@ -313,8 +339,23 @@ PluginImGuiAPI g_imguiApi = {
 	&ImGuiWrapper_GetMousePos,
 	&ImGui::IsMouseDown,
 	&ImGui::IsMouseClicked,
+	//1.5
 	&ImGui::SetColumnWidth,
 	&ImGui::GetFrameHeight,
-	&ImGuiCalcTextSizeWrapper
+	&ImGuiWrapper_CalcTextSize,
+	//1.6
+	&ImGui::IsItemActive,
+	&ImGui::IsMouseDragging,
+	&ImGuiWrapper_GetMouseDragDelta,
+	&ImGui::ResetMouseDragDelta,
+	&ImGuiWrapper_PushStyleColor,
+	&ImGuiWrapper_PopStyleColor,
+	&ImGuiWrapper_ProgressBar,
+	&ImGuiWrapper_GetDisplaySize,
+	&ImGuiWrapper_SetNextWindowPosWithPivot,
+	&ImGui::GetForegroundDrawList,
+	&ImGui::GetIO,
+	&ImGui::GetFontSize,
+	&ImGui::GetFont
 };
 #pragma endregion

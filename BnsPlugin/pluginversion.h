@@ -1,3 +1,3 @@
 #pragma once
 
-constexpr auto L_PLUGINLOADER_VERSION = "1.5";
+constexpr auto L_PLUGINLOADER_VERSION = "1.6";
