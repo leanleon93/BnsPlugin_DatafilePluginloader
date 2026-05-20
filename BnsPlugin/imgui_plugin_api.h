@@ -13,7 +13,9 @@ struct ImGuiPanelDesc {
 // Function pointer types for registration
 typedef int(__stdcall* RegisterImGuiPanelFn)(const ImGuiPanelDesc* desc, bool alwaysVisible);
 typedef void(__stdcall* UnregisterImGuiPanelFn)(int handle);
-
+struct ImDrawList;
+struct ImGuiIO;
+struct ImFont;
 //define controls and widgets you want to expose to plugins so the plugins dont have to link against imgui directly
 struct PluginImGuiAPI {
 	// Basic text and separators
@@ -108,8 +110,22 @@ struct PluginImGuiAPI {
 	bool (*IsMouseDown)(int button);
 	bool (*IsMouseClicked)(int button, bool repeat);
 
-	//Column spacing
+	//Column spacing (1.5)
 	void (*SetColumnWidth)(int column_index, float width);
 	float (*GetFrameHeight)();
 	std::pair<float, float>(*CalcTextSize)(const char* text, const char* text_end, bool hide_text_after_double_hash, float wrap_width);
+	//1.6
+	bool (*IsItemActive)();
+	bool (*IsMouseDragging)(int button, float lock_threshold);
+	std::pair<float, float>(*GetMouseDragDelta)(int button, float lock_threshold);
+	void (*ResetMouseDragDelta)(int button);
+	void (*PushStyleColor)(int imgui_col, float _r, float _g, float _b, float _a);
+	void (*PopStyleColor)(int count);
+	void (*ProgressBar)(float fraction, float width, float height, const char* overlay);
+	std::pair<float, float>(*GetDisplaySize)();
+	void (*SetNextWindowPosWithPivot)(float x, float y, int cond, float pivot_x, float pivot_y);
+	ImDrawList* (*GetForegroundDrawList)();
+	ImGuiIO& (*GetIO)();
+	float (*GetFontSize)();
+	ImFont* (*GetFont)();
 };
