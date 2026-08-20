@@ -286,8 +286,7 @@ struct PartyMemberProperty
 	char pad4[6];
 };
 
-struct FWindowsPlatformTime {
-};
+struct FWindowsPlatformTime {};
 
 struct PreciseTimer // sizeof=0x10
 {
@@ -468,6 +467,12 @@ struct PropString {
 	wchar_t* str;
 };
 
+struct PropVarBin {
+	short size;
+	char pad[6];
+	char* data;
+};
+
 #pragma pack(push, 1)
 struct Creature : GameObject {
 	void* unkptr;
@@ -512,17 +517,11 @@ struct Creature : GameObject {
 
 	bool combat_mode;
 
-#if defined(_BNSKR) || defined(BNSKR)
-	char pad4[0x9A7 + 8 + 16 + 16];
-#elif defined(_BNSEU) || defined(BNSEU)
-	char pad4[0x9A7 + 8 + 16];
-#else
-	char pad4[0x9A7 + 8 + 16];
-#endif
+	char pad4[0x9A7 + 8 + 16 + 16 + 32 + 16];
 
 	// pos = 0xCD0 - C0
 	EffectCatalog* effectCatalog[17];
-	char pad[0x40];
+	char pad[0x90];
 	//end = 0xCD0
 };
 
@@ -545,7 +544,7 @@ const struct PresentationObject {
 
 const struct PTCreature : PresentationObject {
 	char pad_0001[0x570 + 0x78];
-	char pad_0002[0x18];
+	char pad_0002[0x18 + 16 + 16];
 };
 
 struct PTControlledCreature : PTCreature {
