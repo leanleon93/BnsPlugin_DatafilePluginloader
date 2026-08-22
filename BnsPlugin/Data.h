@@ -4,7 +4,18 @@
 #include <iostream>
 #include <set>
 #include <vector>
+
+#if defined(__has_include)
+#if __has_include(<PluginTableCount.h>)
+#include <PluginTableCount.h>
+#define DR_LOADERDEFS_SIZE BNS_PLUGIN_TABLE_COUNT_OVERRIDE_VALUE
+#endif
+#endif
+
+#ifndef DR_LOADERDEFS_SIZE
 #include "DataConstants.h"
+#define DR_LOADERDEFS_SIZE DEFAULT_DR_LOADERDEFS_SIZE
+#endif
 
 struct DataChunk
 {
@@ -247,11 +258,7 @@ namespace Data {
 		void* _aliasMap;
 		void* _elreader;
 		char padding2[0x54];
-#ifdef BNSKR
 		__declspec(align(4)) DrLoaderDef _loaderDefs[DR_LOADERDEFS_SIZE];
-#else
-		__declspec(align(4)) DrLoaderDef _loaderDefs[DR_LOADERDEFS_SIZE];
-#endif
 	};
 }
 #pragma pack(pop)

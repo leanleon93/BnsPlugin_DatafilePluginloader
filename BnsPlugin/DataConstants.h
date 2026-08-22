@@ -1,3 +1,3 @@
 #pragma once
 
-constexpr auto DR_LOADERDEFS_SIZE = 516;
+constexpr auto DEFAULT_DR_LOADERDEFS_SIZE = 516;
